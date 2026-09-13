@@ -696,4 +696,3 @@ if (typeof module !== "undefined" && module.exports) {
 console.log(
     `${C3PE_NAME} v${C3PE_VERSION} initialized.`
 );
-```
