@@ -1,4 +1,3 @@
-```javascript
 /* ============================================================
  * C3PE — Consciousness Three Principles Engine
  * Version: 3.6.2
