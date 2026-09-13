@@ -1,1 +1,272 @@
-<!DOCTYPE html> <html lang="ja"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>C3PE — Consciousness Three Principles Engine</title> <style> body { margin: 0; background: #05070a; color: #d9f7ff; font-family: Consolas, "Courier New", monospace; } header { padding: 40px 20px; border-bottom: 1px solid #1c5263; text-align: center; } h1 { margin: 0; font-size: 28px; letter-spacing: 2px; } .version { margin-top: 10px; color: #69d7ff; } main { max-width: 1000px; margin: auto; padding: 30px 20px; } .panel { border: 1px solid #1c5263; padding: 20px; margin-bottom: 20px; background: #080d12; } textarea { width: 100%; min-height: 180px; box-sizing: border-box; background: #030507; color: #d9f7ff; border: 1px solid #276b80; padding: 15px; font-family: inherit; resize: vertical; } button { margin-top: 15px; padding: 12px 25px; background: #0b2630; color: #8be5ff; border: 1px solid #3ba8c8; cursor: pointer; font-family: inherit; } button:hover { background: #123b49; } pre { white-space: pre-wrap; line-height: 1.6; } .status { color: #6ff0a8; } footer { text-align: center; padding: 30px; border-top: 1px solid #1c5263; color: #63808a; font-size: 13px; } </style> </head> <body> <header> <h1>🖥️ C3PE — Consciousness Three Principles Engine</h1> <div class="version">VERSION 3.6.2 — IDENTITY MONITOR UI ENHANCED KERNEL</div> </header> <main> <section class="panel"> <h2>［SYSTEM STATUS］</h2> <p class="status">● C3PE v3.6.2 ACTIVE</p> <p>Universal Multi-Layer Binary Evaluation Processor</p> </section> <section class="panel"> <h2>［INPUT］</h2> <p> 評価対象となる状況を入力してください。 </p> <textarea id="input" placeholder="例： ある人物の完全なコピーが別の身体に作られた。 元の人物はそのまま存在している。"></textarea> <button onclick="evaluateCase()">RUN C3PE</button> </section> <section class="panel"> <h2>［C3PE EVALUATION MONITOR v3.6.2］</h2> <pre id="output">SYSTEM READY. Waiting for input...</pre> </section> </main> <footer> C3PE — Consciousness Three Principles Engine <br> Author: ゐぬゐぬ (shiyuuda) <br> 2026 </footer> <script> function evaluateCase() { const input = document.getElementById("input").value; if (!input.trim()) { document.getElementById("output").textContent = "[ERROR] INPUT_UNDEFINED"; return; } /* * 現段階ではWeb UIのみ実装。 * * C3PE v3.6.2 本体の * C1 / C2 / Article III / Article IV * の正式な評価エンジンは後から接続する。 */ document.getElementById("output").textContent = `🖥️ [C3PE EVALUATION MONITOR v3.6.2] INPUT RECEIVED. -------------------------------- TARGET INPUT -------------------------------- ${input} -------------------------------- ENGINE STATUS -------------------------------- C3PE CORE: WAITING FOR FORMAL ENGINE C1 = PENDING C2 = PENDING A = PENDING B = PENDING Macro-Phenomenon = PENDING Article III = PENDING Causal Compossibility = PENDING -------------------------------- ※ 現在は入力UIのみ実装されています。 正式なC3PE判定エンジン接続待機中。`; } </script> </body> </html>
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>C3PE — Consciousness Three Principles Engine</title>
+
+<style>
+body {
+    margin: 0;
+    background: #05070a;
+    color: #d9f7ff;
+    font-family: Consolas, "Courier New", monospace;
+}
+
+header {
+    padding: 40px 20px;
+    border-bottom: 1px solid #1c5263;
+    text-align: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 28px;
+    letter-spacing: 2px;
+}
+
+.version {
+    margin-top: 10px;
+    color: #69d7ff;
+}
+
+main {
+    max-width: 1000px;
+    margin: auto;
+    padding: 30px 20px;
+}
+
+.panel {
+    border: 1px solid #1c5263;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #080d12;
+}
+
+textarea {
+    width: 100%;
+    min-height: 180px;
+    box-sizing: border-box;
+    background: #030507;
+    color: #d9f7ff;
+    border: 1px solid #276b80;
+    padding: 15px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+button {
+    margin-top: 15px;
+    padding: 12px 25px;
+    background: #0b2630;
+    color: #8be5ff;
+    border: 1px solid #3ba8c8;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+button:hover {
+    background: #123b49;
+}
+
+pre {
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.status {
+    color: #6ff0a8;
+}
+
+.error {
+    color: #ff7b7b;
+}
+
+footer {
+    text-align: center;
+    padding: 30px;
+    border-top: 1px solid #1c5263;
+    color: #63808a;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🖥️ C3PE — Consciousness Three Principles Engine</h1>
+    <div class="version">
+        VERSION 3.6.2 — IDENTITY MONITOR UI ENHANCED KERNEL
+    </div>
+</header>
+
+
+<main>
+
+<section class="panel">
+
+    <h2>［SYSTEM STATUS］</h2>
+
+    <p class="status">
+        ● C3PE v3.6.2 ACTIVE
+    </p>
+
+    <p>
+        Universal Multi-Layer Binary Evaluation Processor
+    </p>
+
+</section>
+
+
+<section class="panel">
+
+    <h2>［INPUT］</h2>
+
+    <p>
+        評価対象となる状況を入力してください。
+    </p>
+
+    <textarea
+        id="input"
+        placeholder="例：
+ある人物の完全なコピーが別の身体に作られた。
+元の人物はそのまま存在している。"
+    ></textarea>
+
+    <button onclick="evaluateCase()">
+        RUN C3PE
+    </button>
+
+</section>
+
+
+<section class="panel">
+
+    <h2>［C3PE EVALUATION MONITOR v3.6.2］</h2>
+
+    <pre id="output">SYSTEM READY.
+Waiting for input...</pre>
+
+</section>
+
+</main>
+
+
+<footer>
+    C3PE — Consciousness Three Principles Engine
+    <br>
+    Author: ゐぬゐぬ (shiyuuda)
+    <br>
+    2026
+</footer>
+
+
+<!-- =========================================================
+     C3PE CORE
+     ========================================================= -->
+
+<script src="c3pe.js"></script>
+
+
+<!-- =========================================================
+     WEB UI CONTROLLER
+     ========================================================= -->
+
+<script>
+
+function evaluateCase() {
+
+    const inputElement = document.getElementById("input");
+    const outputElement = document.getElementById("output");
+
+    const input = inputElement.value.trim();
+
+
+    /* ---------------------------------------------------------
+       INPUT VALIDATION
+       --------------------------------------------------------- */
+
+    if (!input) {
+
+        outputElement.className = "error";
+
+        outputElement.textContent =
+            "[ERROR] INPUT_UNDEFINED";
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       C3PE CORE CONNECTION CHECK
+       --------------------------------------------------------- */
+
+    if (
+        typeof window.C3PE === "undefined" ||
+        typeof window.C3PE.evaluate !== "function"
+    ) {
+
+        outputElement.className = "error";
+
+        outputElement.textContent =
+            "[ERROR] C3PE_CORE_UNAVAILABLE\n" +
+            "c3pe.js could not be loaded.";
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       CURRENT CONTEXT PROFILING STATE
+       ---------------------------------------------------------
+
+       IMPORTANT:
+
+       V3.6.2 requires STEP 2:
+
+       CONTEXT_PROFILING
+       ↓
+       C1 / C2 / chronological dependencies
+
+       The deterministic core must not invent these values
+       from arbitrary natural-language input.
+
+       Therefore this UI currently reports that the natural-
+       language profiling layer is not yet connected.
+    --------------------------------------------------------- */
+
+    outputElement.className = "";
+
+    outputElement.textContent =
+        "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
+
+        "TARGET INPUT\n" +
+        "--------------------------------\n" +
+        input +
+        "\n\n" +
+
+        "ENGINE STATUS\n" +
+        "--------------------------------\n" +
+        "C3PE CORE: CONNECTED\n" +
+        "VERSION: " + window.C3PE.version + "\n\n" +
+
+        "CONTEXT PROFILING\n" +
+        "--------------------------------\n" +
+        "STATUS: PENDING\n\n" +
+
+        "C1 / C2 / Article III / Article IV\n" +
+        "require normalized logical input.\n\n" +
+
+        "C3PE deterministic core is loaded and ready.\n" +
+        "Natural-language Context Profiling layer is not yet connected.";
+
+}
+
+</script>
+
+</body>
+</html>
+```
