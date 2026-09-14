@@ -150,10 +150,7 @@ footer {
 元の人物はそのまま存在している。"
     ></textarea>
 
-    <button
-        id="runButton"
-        onclick="evaluateCase()"
-    >
+    <button id="runButton">
         RUN C3PE
     </button>
 
@@ -206,7 +203,7 @@ Waiting for input...</pre>
    CONSTANTS
    ========================================================= */
 
-
+const C3PE_VERSION = "3.6.2";
 const C3PE_PROFILE_ENDPOINT = "/api/c3pe-profile";
 
 
@@ -781,6 +778,10 @@ async function evaluateCase() {
 
 window.evaluateCase =
     evaluateCase;
+
+document
+    .getElementById("runButton")
+    .addEventListener("click", evaluateCase);
 
 
 </script>
