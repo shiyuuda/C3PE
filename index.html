@@ -168,6 +168,7 @@ Waiting for input...</pre>
      ========================================================= -->
 
 <script src="c3pe.js?v=362"></script>
+<script src="context-profiler.js?v=362"></script>
 
 
 <!-- =========================================================
@@ -219,48 +220,137 @@ function evaluateCase() {
 
 
     /* ---------------------------------------------------------
-       CURRENT CONTEXT PROFILING STATE
-       ---------------------------------------------------------
+       CONTEXT PROFILER CONNECTION CHECK
+       --------------------------------------------------------- */
 
-       IMPORTANT:
+    if (
+        typeof window.C3PEContextProfiler === "undefined" ||
+        typeof window.C3PEContextProfiler.profile !== "function"
+    ) {
 
-       V3.6.2 requires STEP 2:
+        outputElement.className = "error";
 
-       CONTEXT_PROFILING
-       ↓
-       C1 / C2 / chronological dependencies
+        outputElement.textContent =
+            "[ERROR] CONTEXT_PROFILER_UNAVAILABLE\n" +
+            "context-profiler.js could not be loaded.";
 
-       The deterministic core must not invent these values
-       from arbitrary natural-language input.
+        return;
+    }
 
-       Therefore this UI currently reports that the natural-
-       language profiling layer is not yet connected.
-    --------------------------------------------------------- */
+
+    /* ---------------------------------------------------------
+       CONTEXT PROFILING
+       --------------------------------------------------------- */
+
+    let profile;
+
+    try {
+
+        profile =
+            window.C3PEContextProfiler.profile(input);
+
+    } catch (error) {
+
+        outputElement.className = "error";
+
+        outputElement.textContent =
+            "[ERROR] CONTEXT_PROFILING_FAILED\n\n" +
+            error.message;
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       PROFILING ERROR
+       --------------------------------------------------------- */
+
+    if (!profile || profile.status !== "READY") {
+
+        outputElement.className = "error";
+
+        outputElement.textContent =
+            "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
+
+            "CONTEXT PROFILING\n" +
+            "--------------------------------\n" +
+
+            "STATUS: " +
+            (profile?.status || "UNDEFINED") +
+            "\n\n" +
+
+            (profile?.message ||
+             "Normalized logical input could not be generated.");
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       ASSUMED INPUT DISPLAY
+       --------------------------------------------------------- */
+
+    const assumedInput =
+        "【仮定インプット】\n\n" +
+
+        "Target Vessel: " +
+        profile.targetVessel +
+        "\n\n" +
+
+        "C1 = " +
+        profile.C1 +
+        "\n" +
+        "Reason: " +
+        profile.C1Reason +
+        "\n\n" +
+
+        "A = " +
+        profile.A +
+        "\n" +
+        "Reason: " +
+        profile.AReason +
+        "\n\n" +
+
+        "B = " +
+        profile.B +
+        "\n" +
+        "Reason: " +
+        profile.BReason;
+
+
+    /* ---------------------------------------------------------
+       C3PE DETERMINISTIC CORE
+       --------------------------------------------------------- */
+
+    let result;
+
+    try {
+
+        result =
+            window.C3PE.evaluate(profile);
+
+    } catch (error) {
+
+        outputElement.className = "error";
+
+        outputElement.textContent =
+            "[ERROR] C3PE_EVALUATION_FAILED\n\n" +
+            error.message;
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       FINAL MONITOR OUTPUT
+       --------------------------------------------------------- */
 
     outputElement.className = "";
 
     outputElement.textContent =
-        "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
-
-        "TARGET INPUT\n" +
-        "--------------------------------\n" +
-        input +
+        assumedInput +
         "\n\n" +
-
-        "ENGINE STATUS\n" +
-        "--------------------------------\n" +
-        "C3PE CORE: CONNECTED\n" +
-        "VERSION: " + window.C3PE.version + "\n\n" +
-
-        "CONTEXT PROFILING\n" +
-        "--------------------------------\n" +
-        "STATUS: PENDING\n\n" +
-
-        "C1 / C2 / Article III / Article IV\n" +
-        "require normalized logical input.\n\n" +
-
-        "C3PE deterministic core is loaded and ready.\n" +
-        "Natural-language Context Profiling layer is not yet connected.";
+        result.monitor;
 
 }
 
