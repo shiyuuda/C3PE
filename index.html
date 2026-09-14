@@ -70,6 +70,11 @@ button:hover {
     background: #123b49;
 }
 
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 pre {
     white-space: pre-wrap;
     line-height: 1.6;
@@ -96,14 +101,18 @@ footer {
 <body>
 
 <header>
+
     <h1>🖥️ C3PE — Consciousness Three Principles Engine</h1>
+
     <div class="version">
         VERSION 3.6.2 — IDENTITY MONITOR UI ENHANCED KERNEL
     </div>
+
 </header>
 
 
 <main>
+
 
 <section class="panel">
 
@@ -127,13 +136,13 @@ footer {
     <p>
         評価対象となる状況を入力してください。
     </p>
-    
-　　<p style="color:#d6a85f; font-size:13px; line-height:1.6;">
-    ⚠️ 注意：入力内容はAIによる解析に使用される場合があります。<br>
-    氏名・住所・電話番号・メールアドレス・パスワードなどの個人情報は入力しないでください。<br>
-    思考実験・架空の人物・抽象的なケースの入力を推奨します。
-　　</p>
-    
+
+    <p style="color:#d6a85f; font-size:13px; line-height:1.6;">
+        ⚠️ 注意：入力内容はAIによる解析に使用される場合があります。<br>
+        氏名・住所・電話番号・メールアドレス・パスワードなどの個人情報は入力しないでください。<br>
+        思考実験・架空の人物・抽象的なケースの入力を推奨します。
+    </p>
+
     <textarea
         id="input"
         placeholder="例：
@@ -141,7 +150,10 @@ footer {
 元の人物はそのまま存在している。"
     ></textarea>
 
-    <button onclick="evaluateCase()">
+    <button
+        id="runButton"
+        onclick="evaluateCase()"
+    >
         RUN C3PE
     </button>
 
@@ -157,15 +169,18 @@ Waiting for input...</pre>
 
 </section>
 
+
 </main>
 
 
 <footer>
+
     C3PE — Consciousness Three Principles Engine
     <br>
     Author: ゐぬゐぬ (shiyuuda)
     <br>
     2026
+
 </footer>
 
 
@@ -184,12 +199,373 @@ Waiting for input...</pre>
 
 <script>
 
-function evaluateCase() {
+"use strict";
 
-    const inputElement = document.getElementById("input");
-    const outputElement = document.getElementById("output");
 
-    const input = inputElement.value.trim();
+/* =========================================================
+   CONSTANTS
+   ========================================================= */
+
+const C3PE_VERSION = "3.6.2";
+const C3PE_PROFILE_ENDPOINT = "/api/c3pe-profile";
+
+
+/* =========================================================
+   UI HELPERS
+   ========================================================= */
+
+function setOutput(outputElement, text, className = "") {
+
+    outputElement.className = className;
+    outputElement.textContent = text;
+
+}
+
+
+function setRunningState(buttonElement, running) {
+
+    if (!buttonElement) {
+        return;
+    }
+
+    buttonElement.disabled = running;
+    buttonElement.textContent = running
+        ? "RUNNING..."
+        : "RUN C3PE";
+
+}
+
+
+/* =========================================================
+   AI INTERPRETATION DISPLAY
+   ========================================================= */
+
+function buildAIInterpretationDisplay(interpretation) {
+
+    return (
+        "【AI仮定インプット】\n\n" +
+
+        "Target Vessel: " +
+        String(interpretation.targetVessel) +
+        "\n" +
+
+        "Target Vessel ID: " +
+        String(interpretation.targetVesselId) +
+        "\n\n" +
+
+        "C1 = " +
+        String(interpretation.C1) +
+        "\n" +
+
+        "Reason: " +
+        String(interpretation.C1Reason) +
+        "\n\n" +
+
+        "A = " +
+        String(interpretation.A) +
+        "\n" +
+
+        "Reason: " +
+        String(interpretation.AReason) +
+        "\n\n" +
+
+        "B = " +
+        String(interpretation.B) +
+        "\n" +
+
+        "Reason: " +
+        String(interpretation.BReason) +
+        "\n\n" +
+
+        "Article III\n" +
+
+        "Identity Status: " +
+        String(
+            interpretation.identityStatus ??
+            "UNDEFINED"
+        ) +
+        "\n" +
+
+        "Reason: " +
+        String(
+            interpretation.identityReason ??
+            ""
+        )
+    );
+
+}
+
+
+/* =========================================================
+   NORMALIZED C3PE INPUT
+   ========================================================= */
+
+function buildC3PEInput(interpretation) {
+
+    return {
+
+        /*
+         * STEP 1
+         * The AI endpoint has already successfully identified
+         * a target vessel. Therefore the boundary is considered
+         * explicitly resolved for C3PE Core execution.
+         */
+
+        boundaryDefined: true,
+
+        targetVessel:
+            interpretation.targetVessel,
+
+        targetVesselId:
+            interpretation.targetVesselId ||
+            interpretation.targetVessel,
+
+        /*
+         * ARTICLE II
+         *
+         * IMPORTANT:
+         * These values are supplied by the AI as normalized
+         * interpretation results.
+         *
+         * The AI does NOT calculate the Macro-Phenomenon.
+         * C3PE Core performs C1 AND C2 independently.
+         */
+
+        C1:
+            interpretation.C1,
+
+        C1Reason:
+            interpretation.C1Reason || "",
+
+        A:
+            interpretation.A,
+
+        AReason:
+            interpretation.AReason || "",
+
+        B:
+            interpretation.B,
+
+        BReason:
+            interpretation.BReason || "",
+
+        /*
+         * ARTICLE III
+         *
+         * Do not invent subjective addresses here.
+         *
+         * If the AI endpoint explicitly supplies them in the
+         * future, they can be passed through.
+         *
+         * For the current Worker response, an unspecified
+         * subjective-address set remains unspecified rather
+         * than being artificially generated by the UI.
+         */
+
+        subjectiveAddresses:
+            Array.isArray(
+                interpretation.subjectiveAddresses
+            )
+                ? interpretation.subjectiveAddresses
+                : [],
+
+        identityStatus:
+            interpretation.identityStatus ?? null,
+
+        identityReason:
+            interpretation.identityReason || "",
+
+        /*
+         * ARTICLE IV
+         *
+         * Do not invent causal conditions.
+         *
+         * If the Worker explicitly supplies normalized
+         * causal conditions in the future, they can be
+         * passed through.
+         */
+
+        causalConditions:
+            Array.isArray(
+                interpretation.causalConditions
+            )
+                ? interpretation.causalConditions
+                : []
+
+    };
+
+}
+
+
+/* =========================================================
+   AI PROFILE REQUEST
+   ========================================================= */
+
+async function requestAIProfile(input) {
+
+    const response = await fetch(
+        C3PE_PROFILE_ENDPOINT,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                text: input
+            })
+        }
+    );
+
+
+    let data;
+
+    try {
+
+        data = await response.json();
+
+    } catch (error) {
+
+        throw new Error(
+            "AI_RESPONSE_INVALID"
+        );
+
+    }
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            data?.error ||
+            "AI_TRANSLATION_ERROR"
+        );
+
+    }
+
+
+    if (!data || data.ok !== true) {
+
+        throw new Error(
+            data?.error ||
+            "AI_TRANSLATION_ERROR"
+        );
+
+    }
+
+
+    if (
+        !data.interpretation ||
+        typeof data.interpretation !== "object"
+    ) {
+
+        throw new Error(
+            "AI_RESULT_INVALID"
+        );
+
+    }
+
+
+    return data;
+
+}
+
+
+/* =========================================================
+   AI PROFILE VALIDATION
+   ========================================================= */
+
+function validateAIInterpretation(interpretation) {
+
+    if (
+        !interpretation ||
+        typeof interpretation !== "object"
+    ) {
+
+        throw new Error(
+            "AI_RESULT_INVALID"
+        );
+
+    }
+
+
+    if (
+        typeof interpretation.targetVessel !== "string" ||
+        interpretation.targetVessel.trim() === ""
+    ) {
+
+        throw new Error(
+            "TARGET_VESSEL_INVALID"
+        );
+
+    }
+
+
+    if (
+        typeof interpretation.targetVesselId !== "string" ||
+        interpretation.targetVesselId.trim() === ""
+    ) {
+
+        throw new Error(
+            "TARGET_VESSEL_ID_INVALID"
+        );
+
+    }
+
+
+    const binaryFields = [
+        "C1",
+        "A",
+        "B"
+    ];
+
+
+    for (const field of binaryFields) {
+
+        if (
+            interpretation[field] !== 0 &&
+            interpretation[field] !== 1
+        ) {
+
+            throw new Error(
+                field + "_INVALID"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   MAIN EVALUATION
+   ========================================================= */
+
+async function evaluateCase() {
+
+    const inputElement =
+        document.getElementById("input");
+
+    const outputElement =
+        document.getElementById("output");
+
+    const runButton =
+        document.getElementById("runButton");
+
+
+    if (
+        !inputElement ||
+        !outputElement
+    ) {
+
+        return;
+
+    }
+
+
+    const input =
+        inputElement.value.trim();
 
 
     /* ---------------------------------------------------------
@@ -198,12 +574,14 @@ function evaluateCase() {
 
     if (!input) {
 
-        outputElement.className = "error";
-
-        outputElement.textContent =
-            "[ERROR] INPUT_UNDEFINED";
+        setOutput(
+            outputElement,
+            "[ERROR] INPUT_UNDEFINED",
+            "error"
+        );
 
         return;
+
     }
 
 
@@ -216,152 +594,197 @@ function evaluateCase() {
         typeof window.C3PE.evaluate !== "function"
     ) {
 
-        outputElement.className = "error";
-
-        outputElement.textContent =
+        setOutput(
+            outputElement,
             "[ERROR] C3PE_CORE_UNAVAILABLE\n" +
-            "c3pe.js could not be loaded.";
+            "c3pe.js could not be loaded.",
+            "error"
+        );
 
         return;
+
     }
 
 
     /* ---------------------------------------------------------
-       CONTEXT PROFILER CONNECTION CHECK
+       AI PROFILING START
        --------------------------------------------------------- */
 
-    if (
-        typeof window.C3PEContextProfiler === "undefined" ||
-        typeof window.C3PEContextProfiler.profile !== "function"
-    ) {
-
-        outputElement.className = "error";
-
-        outputElement.textContent =
-            "[ERROR] CONTEXT_PROFILER_UNAVAILABLE\n" +
-            "context-profiler.js could not be loaded.";
-
-        return;
-    }
+    setRunningState(
+        runButton,
+        true
+    );
 
 
-    /* ---------------------------------------------------------
-       CONTEXT PROFILING
-       --------------------------------------------------------- */
+    setOutput(
+        outputElement,
 
-    let profile;
+        "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
+
+        "AI INTERPRETATION\n" +
+        "--------------------------------\n" +
+
+        "Analyzing input...\n" +
+        "Please wait.",
+
+        "status"
+    );
+
 
     try {
 
-        profile =
-            window.C3PEContextProfiler.profile(input);
+        /* -----------------------------------------------------
+           STEP 1
+           AI INTERPRETATION
+           ----------------------------------------------------- */
 
-    } catch (error) {
-
-        outputElement.className = "error";
-
-        outputElement.textContent =
-            "[ERROR] CONTEXT_PROFILING_FAILED\n\n" +
-            error.message;
-
-        return;
-    }
+        const data =
+            await requestAIProfile(input);
 
 
-    /* ---------------------------------------------------------
-       PROFILING ERROR
-       --------------------------------------------------------- */
+        const interpretation =
+            data.interpretation;
 
-    if (!profile || profile.status !== "COMPLETE") {
 
-        outputElement.className = "error";
+        /* -----------------------------------------------------
+           AI RESULT VALIDATION
+           ----------------------------------------------------- */
 
-        outputElement.textContent =
-            "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
+        validateAIInterpretation(
+            interpretation
+        );
 
-            "CONTEXT PROFILING\n" +
-            "--------------------------------\n" +
 
-            "STATUS: " +
-            (profile?.status || "UNDEFINED") +
+        /* -----------------------------------------------------
+           DISPLAY AI ASSUMPTIONS
+           ----------------------------------------------------- */
+
+        const assumedInput =
+            buildAIInterpretationDisplay(
+                interpretation
+            );
+
+
+        setOutput(
+            outputElement,
+
+            assumedInput +
+
             "\n\n" +
 
-            (profile?.message ||
-             "Normalized logical input could not be generated.");
+            "--------------------------------\n" +
 
-        return;
-    }
+            "AI interpretation completed.\n" +
 
+            "Executing C3PE deterministic core...",
 
-    /* ---------------------------------------------------------
-       ASSUMED INPUT DISPLAY
-       --------------------------------------------------------- */
-
-    const assumedInput =
-        "【仮定インプット】\n\n" +
-
-        "Target Vessel: " +
-        profile.targetVessel +
-        "\n\n" +
-
-        "C1 = " +
-        profile.C1 +
-        "\n" +
-        "Reason: " +
-        profile.C1Reason +
-        "\n\n" +
-
-        "A = " +
-        profile.A +
-        "\n" +
-        "Reason: " +
-        profile.AReason +
-        "\n\n" +
-
-        "B = " +
-        profile.B +
-        "\n" +
-        "Reason: " +
-        profile.BReason;
+            "status"
+        );
 
 
-    /* ---------------------------------------------------------
-       C3PE DETERMINISTIC CORE
-       --------------------------------------------------------- */
+        /* -----------------------------------------------------
+           STEP 2
+           BUILD NORMALIZED C3PE INPUT
+           ----------------------------------------------------- */
 
-    let result;
+        const c3peInput =
+            buildC3PEInput(
+                interpretation
+            );
 
-    try {
 
-        result =
-            window.C3PE.evaluate(profile);
+        /* -----------------------------------------------------
+           STEP 3
+           C3PE DETERMINISTIC EVALUATION
+           ----------------------------------------------------- */
+
+        let result;
+
+
+        try {
+
+            result =
+                window.C3PE.evaluate(
+                    c3peInput
+                );
+
+        } catch (error) {
+
+            throw new Error(
+                "C3PE_EVALUATION_FAILED\n\n" +
+                error.message
+            );
+
+        }
+
+
+        /* -----------------------------------------------------
+           STEP 4
+           FINAL MONITOR OUTPUT
+           ----------------------------------------------------- */
+
+        setOutput(
+            outputElement,
+
+            assumedInput +
+
+            "\n\n" +
+
+            "--------------------------------\n\n" +
+
+            result.monitor
+
+        );
+
 
     } catch (error) {
 
-        outputElement.className = "error";
 
-        outputElement.textContent =
+        /* -----------------------------------------------------
+           ERROR HANDLING
+           ----------------------------------------------------- */
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : String(error);
+
+
+        setOutput(
+            outputElement,
+
+            "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
+
             "[ERROR] C3PE_EVALUATION_FAILED\n\n" +
-            error.message;
 
-        return;
+            message,
+
+            "error"
+        );
+
+
+    } finally {
+
+        setRunningState(
+            runButton,
+            false
+        );
+
     }
-
-
-    /* ---------------------------------------------------------
-       FINAL MONITOR OUTPUT
-       --------------------------------------------------------- */
-
-    outputElement.className = "";
-
-    outputElement.textContent =
-        assumedInput +
-        "\n\n" +
-        result.monitor;
 
 }
 
+
+/* =========================================================
+   GLOBAL API
+   ========================================================= */
+
+window.evaluateCase =
+    evaluateCase;
+
+
 </script>
+
 
 </body>
 </html>
