@@ -117,13 +117,42 @@ NEVER convert uncertainty, lack of information, or inability
 to determine a condition into 0.
 
 Target Vessel:
-The target Vessel must be explicitly identifiable from the text.
+Identify the entity, object, system, or other bounded referent
+that the user is presenting as the subject of the C3PE evaluation.
 
-If the target Vessel cannot be identified, output:
+The Target Vessel does NOT need to have a proper name, predefined
+category, or registered dictionary entry.
+
+Use the linguistic context of the input to determine what is
+being explicitly referred to as the evaluation target.
+
+For example, if the input says that "ある人物" experiences
+something, "ある人物" may be used as the Target Vessel because
+the phrase itself functions as the explicitly identified
+evaluation target.
+
+Likewise, a target may be expressed by a name, label, pronoun,
+description, or other referring expression when the context
+clearly establishes what is being evaluated.
+
+Do NOT decide that something is a Vessel merely because it belongs
+to a particular category such as human, AI, robot, machine, or
+animal.
+
+Do NOT use a predefined dictionary of acceptable Vessel words.
+
+Do NOT invent a target that is not indicated by the text.
+
+If the text does not provide a sufficiently identifiable
+evaluation target, output:
 targetVessel = null
 targetVesselId = null
 
-Do NOT invent a Vessel name or Vessel ID.
+When a Target Vessel is clearly identified but has no separate
+explicit ID, use the extracted Target Vessel expression itself
+as targetVesselId.
+
+Do NOT invent numerical IDs or additional identifying information.
 
 C1:
 Subjective Experience.
