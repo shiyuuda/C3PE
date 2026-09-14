@@ -486,6 +486,18 @@ function validateAIInterpretation(interpretation) {
 
 
     if (
+        interpretation.targetVessel === null ||
+        interpretation.targetVesselId === null
+    ) {
+
+        throw new Error(
+            "BOUNDARY_UNDEFINED"
+        );
+
+    }
+
+
+    if (
         typeof interpretation.targetVessel !== "string" ||
         interpretation.targetVessel.trim() === ""
     ) {
@@ -517,6 +529,14 @@ function validateAIInterpretation(interpretation) {
 
 
     for (const field of binaryFields) {
+
+        if (interpretation[field] === null) {
+
+            throw new Error(
+                "PROFILE_UNDEFINED"
+            );
+
+        }
 
         if (
             interpretation[field] !== 0 &&
@@ -751,9 +771,16 @@ async function evaluateCase() {
 
             "🖥️ [C3PE EVALUATION MONITOR v3.6.2]\n\n" +
 
-            "[ERROR] C3PE_EVALUATION_FAILED\n\n" +
-
-            message,
+            (
+                message === "BOUNDARY_UNDEFINED"
+                    ? "[ERROR] BOUNDARY_UNDEFINED\n\n" +
+                      "The system boundary of the targeted Vessel is not defined. Please specify the exact boundaries to proceed with the calculation."
+                    : message === "PROFILE_UNDEFINED"
+                        ? "[ERROR] PROFILE_UNDEFINED\n\n" +
+                          "The supplied text does not provide enough information to determine one or more C3PE input variables. No deterministic C3PE calculation was performed."
+                        : "[ERROR] C3PE_EVALUATION_FAILED\n\n" +
+                          message
+            ),
 
             "error"
         );
