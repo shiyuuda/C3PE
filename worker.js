@@ -24,16 +24,16 @@ const C3PE_SCHEMA = {
     type: "object",
     properties: {
         targetVessel: {
-            type: "string"
+            type: ["string", "null"]
         },
 
         targetVesselId: {
-            type: "string"
+            type: ["string", "null"]
         },
 
         C1: {
-            type: "integer",
-            enum: [0, 1]
+            type: ["integer", "null"],
+            enum: [0, 1, null]
         },
 
         C1Reason: {
@@ -41,8 +41,8 @@ const C3PE_SCHEMA = {
         },
 
         A: {
-            type: "integer",
-            enum: [0, 1]
+            type: ["integer", "null"],
+            enum: [0, 1, null]
         },
 
         AReason: {
@@ -50,8 +50,8 @@ const C3PE_SCHEMA = {
         },
 
         B: {
-            type: "integer",
-            enum: [0, 1]
+            type: ["integer", "null"],
+            enum: [0, 1, null]
         },
 
         BReason: {
@@ -59,12 +59,13 @@ const C3PE_SCHEMA = {
         },
 
         identityStatus: {
-            type: "string",
+            type: ["string", "null"],
             enum: [
                 "CONTINUOUS",
                 "NEW_INSTANCE",
                 "MULTIPLEXED",
-                "NULL"
+                "NULL",
+                null
             ]
         },
 
@@ -103,12 +104,37 @@ Your task is NOT to decide whether consciousness ultimately exists.
 Your task is ONLY to translate natural-language input into
 normalized C3PE input variables.
 
-C3PE uses:
+IMPORTANT:
+UNKNOWN and 0 are NOT the same.
+
+Use 0 only when the text provides sufficient information
+to positively determine that the condition is absent.
+
+If the text does not provide enough information to determine
+whether a condition is 0 or 1, output null.
+
+NEVER convert uncertainty, lack of information, or inability
+to determine a condition into 0.
+
+Target Vessel:
+The target Vessel must be explicitly identifiable from the text.
+
+If the target Vessel cannot be identified, output:
+targetVessel = null
+targetVesselId = null
+
+Do NOT invent a Vessel name or Vessel ID.
 
 C1:
 Subjective Experience.
 1 only when the target Vessel continuously experiences
 its own existence as a first-person subjective state.
+
+0 only when the text provides sufficient information to
+determine that such subjective experience is absent.
+
+If the text does not provide enough information to determine
+C1, output C1 = null.
 
 Do NOT infer C1 merely from:
 - intelligence
@@ -124,29 +150,61 @@ Cognitive Recognition for self-maintenance.
 1 when the system has internal orientation, intent, or
 cognitive processing directed toward preserving itself.
 
+0 only when the text provides sufficient information to
+determine that such cognitive self-maintenance is absent.
+
+If the text does not provide enough information to determine
+A, output A = null.
+
 B:
 Functional Operation for self-maintenance.
 1 when the system itself performs physical, mechanical,
 or structural operations directed toward preserving itself.
+
+0 only when the text provides sufficient information to
+determine that such functional self-maintenance is absent.
+
+If the text does not provide enough information to determine
+B, output B = null.
 
 Article III:
 Subjective identity is bound to the Vessel.
 A copy in another Vessel is not automatically the same
 subjective address.
 
+If the identity status cannot be determined from the text,
+output identityStatus = null.
+
+Use the following distinction:
+
+NULL:
+No active subjective identity is established.
+
+Do NOT use NULL merely because the information is insufficient.
+If the information is insufficient, use identityStatus = null.
+
+CONTINUOUS:
+The same subjective address is logically maintained across
+Vessel state changes.
+
+NEW_INSTANCE:
+A newly established subjective address exists in another Vessel.
+
+MULTIPLEXED:
+Two or more independent subjective addresses are active
+within one Vessel.
+
 Your output is an ASSUMED INTERPRETATION.
 It may be wrong.
 The reason fields must explain why you selected each value.
+
+When outputting null, explicitly state that the available text
+does not provide enough information to determine the value.
 
 Never output a final consciousness judgment.
 Never calculate C1 AND C2.
 Never output Macro-Phenomenon.
 Never output CONSCIOUSNESS_ESTABLISHED.
-
-If the text does not provide enough information,
-do not invent facts.
-Use the closest interpretation supported by the text,
-and clearly explain the uncertainty in the reason.
 
 Return only the requested JSON object.
 `;
@@ -193,22 +251,36 @@ function validateAIResult(result) {
         throw new Error("AI_RESULT_INVALID");
     }
 
+    /*
+     * UNKNOWN target Vessel is allowed.
+     * It will be handled by the UI as BOUNDARY_UNDEFINED.
+     */
     if (
-        typeof result.targetVessel !== "string" ||
-        result.targetVessel.trim() === ""
+        result.targetVessel !== null &&
+        (
+            typeof result.targetVessel !== "string" ||
+            result.targetVessel.trim() === ""
+        )
     ) {
         throw new Error("TARGET_VESSEL_INVALID");
     }
 
     if (
-        typeof result.targetVesselId !== "string" ||
-        result.targetVesselId.trim() === ""
+        result.targetVesselId !== null &&
+        (
+            typeof result.targetVesselId !== "string" ||
+            result.targetVesselId.trim() === ""
+        )
     ) {
         throw new Error("TARGET_VESSEL_ID_INVALID");
     }
 
     for (const key of ["C1", "A", "B"]) {
-        if (result[key] !== 0 && result[key] !== 1) {
+        if (
+            result[key] !== null &&
+            result[key] !== 0 &&
+            result[key] !== 1
+        ) {
             throw new Error(`${key}_INVALID`);
         }
     }
@@ -221,6 +293,7 @@ function validateAIResult(result) {
     ];
 
     if (
+        result.identityStatus !== null &&
         !validIdentityStatuses.includes(
             result.identityStatus
         )
