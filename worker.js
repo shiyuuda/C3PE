@@ -178,7 +178,7 @@ ${text}
         temperature: 0
     });
 
-    return response;
+    return response.response;
 }
 
 
