@@ -530,15 +530,8 @@ function validateAIInterpretation(interpretation) {
 
     for (const field of binaryFields) {
 
-        if (interpretation[field] === null) {
-
-            throw new Error(
-                "PROFILE_UNDEFINED"
-            );
-
-        }
-
         if (
+            interpretation[field] !== null &&
             interpretation[field] !== 0 &&
             interpretation[field] !== 1
         ) {
@@ -679,6 +672,35 @@ async function evaluateCase() {
             buildAIInterpretationDisplay(
                 interpretation
             );
+
+
+        const hasUndefinedBinaryField =
+            interpretation.C1 === null ||
+            interpretation.A === null ||
+            interpretation.B === null;
+
+        if (hasUndefinedBinaryField) {
+
+            setOutput(
+                outputElement,
+
+                assumedInput +
+
+                "\n\n" +
+
+                "--------------------------------\n" +
+
+                "Partial evaluation only.\n" +
+
+                "One or more Article II input variables are undefined, so the deterministic C3PE core was not executed.\n" +
+
+                "The available AI interpretation is displayed above.",
+
+                "status"
+            );
+
+            return;
+        }
 
 
         setOutput(
