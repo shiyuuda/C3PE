@@ -7,13 +7,15 @@
  *
  * Natural Language
  *      ↓
+ * Target / Knowledge Retrieval
+ *      ↓
  * Cloudflare Workers AI
  *      ↓
  * Normalized C3PE Input
  *
  * IMPORTANT:
  * - AI does NOT calculate the final C3PE result.
- * - AI only interprets natural language into assumed inputs.
+ * - AI only interprets information into assumed inputs.
  * - C3PE remains the deterministic calculation core.
  * ============================================================
  */
@@ -91,161 +93,103 @@ const C3PE_SCHEMA = {
 
 /*
  * ------------------------------------------------------------
- * AI interpretation
+ * TARGET EXTRACTION
+ *
+ * This stage does NOT perform C3PE evaluation.
+ *
+ * Its only purpose is to determine what entity the user is
+ * asking about and to produce a useful public-information
+ * search query.
  * ------------------------------------------------------------
  */
-async function translateWithAI(text, env) {
+
+const TARGET_SCHEMA = {
+    type: "object",
+
+    properties: {
+        targetVessel: {
+            type: ["string", "null"]
+        },
+
+        targetVesselId: {
+            type: ["string", "null"]
+        },
+
+        knowledgeQuery: {
+            type: ["string", "null"]
+        }
+    },
+
+    required: [
+        "targetVessel",
+        "targetVesselId",
+        "knowledgeQuery"
+    ]
+};
+
+
+async function extractTarget(text, env) {
 
     const systemPrompt = `
-You are the interpretation layer of C3PE v3.6.2.
+You are the target extraction layer of C3PE v3.6.2.
 
-Your task is NOT to decide whether consciousness ultimately exists.
+Your task is ONLY to identify the entity, object, character,
+system, or other bounded referent that the user is asking
+about.
 
-Your task is ONLY to translate natural-language input into
-normalized C3PE input variables.
+Do NOT evaluate consciousness.
 
-IMPORTANT:
-UNKNOWN and 0 are NOT the same.
+Do NOT determine C1, C2, A, B, or identity.
 
-Use 0 only when the text provides sufficient information
-to positively determine that the condition is absent.
+The target does not need to be a human, AI, robot, animal,
+or any predefined category.
 
-If the text does not provide enough information to determine
-whether a condition is 0 or 1, output null.
+Use the linguistic context of the user's input.
 
-NEVER convert uncertainty, lack of information, or inability
-to determine a condition into 0.
+Examples:
 
-Target Vessel:
-Identify the entity, object, system, or other bounded referent
-that the user is presenting as the subject of the C3PE evaluation.
+"ドラえもんには意識がある？"
+Target Vessel = ドラえもん
 
-The Target Vessel does NOT need to have a proper name, predefined
-category, or registered dictionary entry.
+"ある人物は睡眠前後で同じ意識なのか？"
+Target Vessel = ある人物
 
-Use the linguistic context of the input to determine what is
-being explicitly referred to as the evaluation target.
+"このコピーは元の人物と同じ意識か？"
+Target Vessel = このコピー
 
-For example, if the input says that "ある人物" experiences
-something, "ある人物" may be used as the Target Vessel because
-the phrase itself functions as the explicitly identified
-evaluation target.
-
-Likewise, a target may be expressed by a name, label, pronoun,
-description, or other referring expression when the context
-clearly establishes what is being evaluated.
-
-Do NOT decide that something is a Vessel merely because it belongs
-to a particular category such as human, AI, robot, machine, or
-animal.
-
-Do NOT use a predefined dictionary of acceptable Vessel words.
-
-Do NOT invent a target that is not indicated by the text.
-
-If the text does not provide a sufficiently identifiable
-evaluation target, output:
+If the target cannot be sufficiently identified:
 targetVessel = null
 targetVesselId = null
+knowledgeQuery = null
 
-When a Target Vessel is clearly identified but has no separate
-explicit ID, use the extracted Target Vessel expression itself
-as targetVesselId.
+When a target is clearly identified but has no separate ID,
+use the target expression itself as targetVesselId.
 
-Do NOT invent numerical IDs or additional identifying information.
+knowledgeQuery:
+Create a concise public-information search query for the
+identified target.
 
-C1:
-Subjective Experience.
-1 only when the target Vessel continuously experiences
-its own existence as a first-person subjective state.
+For example:
+Target = ドラえもん
+knowledgeQuery = ドラえもん キャラクター 設定 意識 自己認識
 
-0 only when the text provides sufficient information to
-determine that such subjective experience is absent.
+Target = NULL
+knowledgeQuery = null
 
-If the text does not provide enough information to determine
-C1, output C1 = null.
-
-Do NOT infer C1 merely from:
-- intelligence
-- information processing
-- memory
-- self-recognition
-- behavior
-- complexity
-- functional sophistication
-
-A:
-Cognitive Recognition for self-maintenance.
-1 when the system has internal orientation, intent, or
-cognitive processing directed toward preserving itself.
-
-0 only when the text provides sufficient information to
-determine that such cognitive self-maintenance is absent.
-
-If the text does not provide enough information to determine
-A, output A = null.
-
-B:
-Functional Operation for self-maintenance.
-1 when the system itself performs physical, mechanical,
-or structural operations directed toward preserving itself.
-
-0 only when the text provides sufficient information to
-determine that such functional self-maintenance is absent.
-
-If the text does not provide enough information to determine
-B, output B = null.
-
-Article III:
-Subjective identity is bound to the Vessel.
-A copy in another Vessel is not automatically the same
-subjective address.
-
-If the identity status cannot be determined from the text,
-output identityStatus = null.
-
-Use the following distinction:
-
-NULL:
-No active subjective identity is established.
-
-Do NOT use NULL merely because the information is insufficient.
-If the information is insufficient, use identityStatus = null.
-
-CONTINUOUS:
-The same subjective address is logically maintained across
-Vessel state changes.
-
-NEW_INSTANCE:
-A newly established subjective address exists in another Vessel.
-
-MULTIPLEXED:
-Two or more independent subjective addresses are active
-within one Vessel.
-
-Your output is an ASSUMED INTERPRETATION.
-It may be wrong.
-The reason fields must explain why you selected each value.
-
-When outputting null, explicitly state that the available text
-does not provide enough information to determine the value.
-
-Never output a final consciousness judgment.
-Never calculate C1 AND C2.
-Never output Macro-Phenomenon.
-Never output CONSCIOUSNESS_ESTABLISHED.
+Do NOT invent facts.
 
 Return only the requested JSON object.
 `;
 
     const userPrompt = `
-Analyze the following C3PE case.
+Identify the Target Vessel for the following C3PE case.
 
 USER INPUT:
 ${text}
 `;
 
     const response = await env.AI.run(MODEL, {
+
         messages: [
             {
                 role: "system",
@@ -259,7 +203,7 @@ ${text}
 
         response_format: {
             type: "json_schema",
-            json_schema: C3PE_SCHEMA
+            json_schema: TARGET_SCHEMA
         },
 
         temperature: 0
@@ -271,19 +215,453 @@ ${text}
 
 /*
  * ------------------------------------------------------------
+ * KNOWLEDGE RETRIEVAL
+ *
+ * First-stage implementation:
+ * MediaWiki / Wikipedia public information.
+ *
+ * This layer supplies contextual information to the AI.
+ * It does NOT calculate C3PE.
+ * ------------------------------------------------------------
+ */
+
+async function retrieveKnowledge(query, target) {
+
+    if (
+        !query ||
+        !target
+    ) {
+        return "";
+    }
+
+    try {
+
+        const searchUrl =
+            "https://ja.wikipedia.org/w/api.php" +
+            "?action=opensearch" +
+            "&search=" +
+            encodeURIComponent(query) +
+            "&limit=5" +
+            "&namespace=0" +
+            "&format=json";
+
+        const searchResponse =
+            await fetch(
+                searchUrl,
+                {
+                    headers: {
+                        "User-Agent":
+                            "C3PE/3.6.2"
+                    }
+                }
+            );
+
+        if (!searchResponse.ok) {
+            return "";
+        }
+
+        const searchData =
+            await searchResponse.json();
+
+        if (
+            !Array.isArray(searchData) ||
+            !Array.isArray(searchData[1])
+        ) {
+            return "";
+        }
+
+        const titles =
+            searchData[1]
+                .filter(
+                    title =>
+                        typeof title === "string" &&
+                        title.trim() !== ""
+                )
+                .slice(0, 3);
+
+        if (titles.length === 0) {
+            return "";
+        }
+
+
+        const pageQuery =
+            "https://ja.wikipedia.org/w/api.php" +
+            "?action=query" +
+            "&prop=extracts" +
+            "&exintro=1" +
+            "&explaintext=1" +
+            "&redirects=1" +
+            "&format=json" +
+            "&titles=" +
+            encodeURIComponent(
+                titles.join("|")
+            );
+
+
+        const pageResponse =
+            await fetch(
+                pageQuery,
+                {
+                    headers: {
+                        "User-Agent":
+                            "C3PE/3.6.2"
+                    }
+                }
+            );
+
+
+        if (!pageResponse.ok) {
+            return "";
+        }
+
+
+        const pageData =
+            await pageResponse.json();
+
+
+        const pages =
+            pageData?.query?.pages;
+
+
+        if (
+            !pages ||
+            typeof pages !== "object"
+        ) {
+            return "";
+        }
+
+
+        const contexts = [];
+
+
+        for (const page of Object.values(pages)) {
+
+            if (
+                !page ||
+                typeof page !== "object"
+            ) {
+                continue;
+            }
+
+            const title =
+                typeof page.title === "string"
+                    ? page.title
+                    : "";
+
+            const extract =
+                typeof page.extract === "string"
+                    ? page.extract
+                    : "";
+
+            if (!extract.trim()) {
+                continue;
+            }
+
+            contexts.push(
+                `SOURCE: Wikipedia\n` +
+                `TITLE: ${title}\n` +
+                `CONTENT:\n${extract}`
+            );
+        }
+
+
+        return contexts.join(
+            "\n\n--------------------------------\n\n"
+        );
+
+    } catch (error) {
+
+        /*
+         * Knowledge retrieval failure must NOT
+         * become a C3PE result.
+         *
+         * The system can still perform ordinary
+         * interpretation from the user's text.
+         */
+
+        return "";
+    }
+}
+
+
+/*
+ * ------------------------------------------------------------
+ * AI interpretation
+ * ------------------------------------------------------------
+ */
+
+async function translateWithAI(
+    text,
+    env,
+    knowledgeContext = "",
+    extractedTarget = null
+) {
+
+    const systemPrompt = `
+You are the interpretation layer of C3PE v3.6.2.
+
+Your task is NOT to decide whether consciousness ultimately exists.
+
+Your task is ONLY to translate natural-language input and
+available contextual information into normalized C3PE input
+variables.
+
+IMPORTANT:
+UNKNOWN and 0 are NOT the same.
+
+Use 0 only when the available information provides sufficient
+information to positively determine that the condition is absent.
+
+If the available information does not provide enough
+information to determine whether a condition is 0 or 1,
+output null.
+
+NEVER convert uncertainty or lack of information into 0.
+
+The available contextual information may come from public
+knowledge sources.
+
+Public knowledge is contextual evidence only.
+It is NOT itself a C3PE result.
+
+Do NOT treat the existence of a character, human, AI, robot,
+animal, fictional entity, or any category membership as proof
+of consciousness.
+
+Target Vessel:
+Identify the entity, object, system, character, or other bounded
+referent that the user is presenting as the subject of the
+C3PE evaluation.
+
+The Target Vessel does NOT need to have a proper name,
+predefined category, or registered dictionary entry.
+
+Use the linguistic context of the input.
+
+If an extracted target is supplied by the previous processing
+stage, use it unless the original input clearly establishes
+that it is incorrect.
+
+If the target cannot be sufficiently identified:
+targetVessel = null
+targetVesselId = null
+
+When a Target Vessel is clearly identified but has no separate
+explicit ID, use the extracted Target Vessel expression itself
+as targetVesselId.
+
+Do NOT invent numerical IDs or additional identifying
+information.
+
+C1:
+Subjective Experience.
+
+1 only when the available information supports that the target
+Vessel experiences its own existence as a first-person
+subjective state.
+
+0 only when the available information supports that such
+subjective experience is absent.
+
+If there is insufficient information, output C1 = null.
+
+Do NOT infer C1 merely from:
+- intelligence
+- information processing
+- memory
+- self-recognition
+- behavior
+- complexity
+- functional sophistication
+- being a fictional character
+- being a human
+- being an AI
+- being a robot
+
+A:
+Cognitive Recognition for self-maintenance.
+
+1 when the system has internal orientation, intent, or cognitive
+processing directed toward preserving itself.
+
+0 only when the available information supports that such
+cognitive self-maintenance is absent.
+
+If insufficient information exists, output A = null.
+
+B:
+Functional Operation for self-maintenance.
+
+1 when the system itself performs physical, mechanical,
+or structural operations directed toward preserving itself.
+
+0 only when the available information supports that such
+functional self-maintenance is absent.
+
+If insufficient information exists, output B = null.
+
+Article III:
+Subjective identity is bound to the Vessel.
+
+A copy in another Vessel is not automatically the same
+subjective address.
+
+If the identity status cannot be determined:
+identityStatus = null
+
+NULL:
+No active subjective identity is established.
+
+Do NOT use NULL merely because information is insufficient.
+
+CONTINUOUS:
+The same subjective address is logically maintained across
+Vessel state changes.
+
+NEW_INSTANCE:
+A newly established subjective address exists in another Vessel.
+
+MULTIPLEXED:
+Two or more independent subjective addresses are active within
+one Vessel.
+
+IMPORTANT SOURCE RULE:
+
+The contextual information may contain statements that are
+uncertain, incomplete, fictional, disputed, or descriptive.
+
+Do not silently convert unsupported claims into facts.
+
+Use the available information only when it actually supports
+the relevant C3PE variable.
+
+Your output is an ASSUMED INTERPRETATION.
+It may be wrong.
+
+The reason fields must explain why each value was selected.
+
+When outputting null, explicitly state that the available
+information does not provide enough information to determine
+the value.
+
+Never output a final consciousness judgment.
+
+Never calculate C1 AND C2.
+
+Never output Macro-Phenomenon.
+
+Never output CONSCIOUSNESS_ESTABLISHED.
+
+Return only the requested JSON object.
+`;
+
+
+    const contextSection =
+        knowledgeContext.trim() !== ""
+            ? `
+PUBLIC KNOWLEDGE CONTEXT:
+
+${knowledgeContext}
+
+END PUBLIC KNOWLEDGE CONTEXT.
+`
+            : `
+PUBLIC KNOWLEDGE CONTEXT:
+
+No external public-information context was successfully
+retrieved.
+
+END PUBLIC KNOWLEDGE CONTEXT.
+`;
+
+
+    const targetSection =
+        extractedTarget &&
+        typeof extractedTarget === "object"
+            ? `
+PREVIOUS TARGET EXTRACTION:
+
+Target Vessel:
+${String(
+    extractedTarget.targetVessel
+)}
+
+Target Vessel ID:
+${String(
+    extractedTarget.targetVesselId
+)}
+
+END PREVIOUS TARGET EXTRACTION.
+`
+            : "";
+
+
+    const userPrompt = `
+Analyze the following C3PE case.
+
+USER INPUT:
+${text}
+
+${targetSection}
+
+${contextSection}
+`;
+
+
+    const response =
+        await env.AI.run(
+            MODEL,
+            {
+
+                messages: [
+                    {
+                        role: "system",
+                        content: systemPrompt
+                    },
+                    {
+                        role: "user",
+                        content: userPrompt
+                    }
+                ],
+
+                response_format: {
+                    type: "json_schema",
+                    json_schema: C3PE_SCHEMA
+                },
+
+                temperature: 0
+            }
+        );
+
+
+    return response.response;
+}
+
+
+/*
+ * ------------------------------------------------------------
  * Worker-side validation
  * ------------------------------------------------------------
  */
+
 function validateAIResult(result) {
 
-    if (!result || typeof result !== "object") {
-        throw new Error("AI_RESULT_INVALID");
+    if (
+        !result ||
+        typeof result !== "object"
+    ) {
+        throw new Error(
+            "AI_RESULT_INVALID"
+        );
     }
+
 
     /*
      * UNKNOWN target Vessel is allowed.
-     * It will be handled by the UI as BOUNDARY_UNDEFINED.
+     * It will be handled by the UI as
+     * BOUNDARY_UNDEFINED.
      */
+
     if (
         result.targetVessel !== null &&
         (
@@ -291,8 +669,11 @@ function validateAIResult(result) {
             result.targetVessel.trim() === ""
         )
     ) {
-        throw new Error("TARGET_VESSEL_INVALID");
+        throw new Error(
+            "TARGET_VESSEL_INVALID"
+        );
     }
+
 
     if (
         result.targetVesselId !== null &&
@@ -301,18 +682,34 @@ function validateAIResult(result) {
             result.targetVesselId.trim() === ""
         )
     ) {
-        throw new Error("TARGET_VESSEL_ID_INVALID");
+        throw new Error(
+            "TARGET_VESSEL_ID_INVALID"
+        );
     }
 
-    for (const key of ["C1", "A", "B"]) {
+
+    for (
+        const key of [
+            "C1",
+            "A",
+            "B"
+        ]
+    ) {
+
         if (
             result[key] !== null &&
             result[key] !== 0 &&
             result[key] !== 1
         ) {
-            throw new Error(`${key}_INVALID`);
+
+            throw new Error(
+                `${key}_INVALID`
+            );
+
         }
+
     }
+
 
     const validIdentityStatuses = [
         "CONTINUOUS",
@@ -321,14 +718,20 @@ function validateAIResult(result) {
         "NULL"
     ];
 
+
     if (
         result.identityStatus !== null &&
         !validIdentityStatuses.includes(
             result.identityStatus
         )
     ) {
-        throw new Error("IDENTITY_STATUS_INVALID");
+
+        throw new Error(
+            "IDENTITY_STATUS_INVALID"
+        );
+
     }
+
 
     for (
         const key of [
@@ -338,12 +741,19 @@ function validateAIResult(result) {
             "identityReason"
         ]
     ) {
+
         if (
             typeof result[key] !== "string"
         ) {
-            throw new Error(`${key}_INVALID`);
+
+            throw new Error(
+                `${key}_INVALID`
+            );
+
         }
+
     }
+
 
     return true;
 }
@@ -354,53 +764,170 @@ function validateAIResult(result) {
  * HTTP
  * ------------------------------------------------------------
  */
+
 export default {
 
-    async fetch(request, env) {
+    async fetch(
+        request,
+        env
+    ) {
 
-        const url = new URL(request.url);
+        const url =
+            new URL(request.url);
+
 
         /*
+         * ----------------------------------------------------
          * AI translation endpoint
+         * ----------------------------------------------------
          */
+
         if (
-            url.pathname === "/api/c3pe-profile" &&
+            url.pathname ===
+                "/api/c3pe-profile" &&
             request.method === "POST"
         ) {
 
             try {
 
-                const body = await request.json();
+                const body =
+                    await request.json();
+
 
                 if (
                     !body ||
                     typeof body.text !== "string" ||
                     body.text.trim() === ""
                 ) {
+
                     return Response.json(
                         {
                             ok: false,
-                            error: "INPUT_UNDEFINED"
+                            error:
+                                "INPUT_UNDEFINED"
                         },
-                        { status: 400 }
+                        {
+                            status: 400
+                        }
                     );
+
                 }
+
+
+                const input =
+                    body.text.trim();
+
+
+                /*
+                 * STEP 1
+                 * Identify the evaluation target.
+                 *
+                 * This stage does not perform
+                 * C3PE evaluation.
+                 */
+
+                let extractedTarget = null;
+
+
+                try {
+
+                    extractedTarget =
+                        await extractTarget(
+                            input,
+                            env
+                        );
+
+                } catch (error) {
+
+                    /*
+                     * Target extraction failure does not
+                     * automatically mean the whole request
+                     * is invalid.
+                     *
+                     * The main interpretation layer may
+                     * still attempt to identify the target.
+                     */
+
+                    extractedTarget = null;
+                }
+
+
+                /*
+                 * STEP 2
+                 * Retrieve public contextual information.
+                 */
+
+                let knowledgeContext = "";
+
+
+                if (
+                    extractedTarget &&
+                    extractedTarget.targetVessel &&
+                    extractedTarget.knowledgeQuery
+                ) {
+
+                    knowledgeContext =
+                        await retrieveKnowledge(
+                            extractedTarget.knowledgeQuery,
+                            extractedTarget.targetVessel
+                        );
+
+                }
+
+
+                /*
+                 * STEP 3
+                 * Interpret the original input together
+                 * with retrieved contextual information.
+                 *
+                 * This remains an interpretation layer.
+                 */
 
                 const aiResult =
                     await translateWithAI(
-                        body.text,
-                        env
+                        input,
+                        env,
+                        knowledgeContext,
+                        extractedTarget
                     );
 
-                validateAIResult(aiResult);
+
+                /*
+                 * STEP 4
+                 * Validate normalized C3PE input.
+                 */
+
+                validateAIResult(
+                    aiResult
+                );
+
+
+                /*
+                 * STEP 5
+                 * Return the normalized interpretation.
+                 *
+                 * The deterministic C3PE Core remains
+                 * outside this Worker.
+                 */
 
                 return Response.json({
+
                     ok: true,
-                    source: "Cloudflare Workers AI",
-                    model: MODEL,
-                    c3peVersion: "3.6.2",
-                    interpretation: aiResult
+
+                    source:
+                        "Cloudflare Workers AI",
+
+                    model:
+                        MODEL,
+
+                    c3peVersion:
+                        "3.6.2",
+
+                    interpretation:
+                        aiResult
+
                 });
+
 
             } catch (error) {
 
@@ -412,32 +939,56 @@ export default {
                                 ? error.message
                                 : "AI_TRANSLATION_ERROR"
                     },
-                    { status: 500 }
+                    {
+                        status: 500
+                    }
                 );
+
             }
+
         }
 
 
         /*
+         * ----------------------------------------------------
          * Connection test
+         * ----------------------------------------------------
          */
+
         if (
-            url.pathname === "/api/c3pe-test" &&
+            url.pathname ===
+                "/api/c3pe-test" &&
             request.method === "GET"
         ) {
 
             return Response.json({
+
                 ok: true,
-                service: "C3PE Worker",
-                version: "3.6.2",
-                aiBinding: !!env.AI
+
+                service:
+                    "C3PE Worker",
+
+                version:
+                    "3.6.2",
+
+                aiBinding:
+                    !!env.AI
+
             });
+
         }
 
 
         /*
+         * ----------------------------------------------------
          * Static assets
+         * ----------------------------------------------------
          */
-        return env.ASSETS.fetch(request);
+
+        return env.ASSETS.fetch(
+            request
+        );
+
     }
+
 };
