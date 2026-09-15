@@ -995,7 +995,10 @@ export default {
                         "3.6.2",
 
                     interpretation:
-                        aiResult
+                        aiResult,
+
+                    knowledgeContext:
+                        knowledgeContext
 
                 });
 
