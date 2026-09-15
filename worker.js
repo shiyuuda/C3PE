@@ -154,11 +154,18 @@ result unless the normalized causal model is sufficient.
 RULE 9 — TARGET VESSEL
 ==================================================
 
-Identify the explicit target Vessel from the input.
+The target Vessel is provided separately by the user
+through the dedicated Target Vessel input field.
 
-Do not replace the target with a semantically related entity.
+Treat the provided Target Vessel as authoritative.
 
-If the target boundary is ambiguous, return:
+DO NOT infer, replace, reinterpret, or modify the Target Vessel
+from the natural-language case description.
+
+The target Vessel must be returned exactly as provided.
+
+If the Target Vessel input is missing or empty,
+return:
 
 BOUNDARY_UNDEFINED
 
