@@ -94,12 +94,6 @@ const C3PE_SCHEMA = {
 /*
  * ------------------------------------------------------------
  * TARGET EXTRACTION
- *
- * This stage does NOT perform C3PE evaluation.
- *
- * Its only purpose is to determine what entity the user is
- * asking about and to produce a useful public-information
- * search query.
  * ------------------------------------------------------------
  */
 
@@ -169,9 +163,19 @@ knowledgeQuery:
 Create a concise public-information search query for the
 identified target.
 
-For example:
+Prefer the target's canonical name itself as the first
+and most important search term.
+
+Do NOT make the query overly specific by assuming facts
+about consciousness, self-awareness, or behavior.
+
+Examples:
+
 Target = ドラえもん
-knowledgeQuery = ドラえもん キャラクター 設定 意識 自己認識
+knowledgeQuery = ドラえもん
+
+Target = 孫悟空
+knowledgeQuery = 孫悟空
 
 Target = NULL
 knowledgeQuery = null
@@ -220,18 +224,23 @@ ${text}
  * First-stage implementation:
  * MediaWiki / Wikipedia public information.
  *
+ * Retrieval strategy:
+ * 1. Search the target itself.
+ * 2. If that fails, search the generated query.
+ * 3. Retrieve the lead extracts of the best matching pages.
+ *
  * This layer supplies contextual information to the AI.
  * It does NOT calculate C3PE.
  * ------------------------------------------------------------
  */
 
-async function retrieveKnowledge(query, target) {
+async function searchWikipedia(searchTerm) {
 
     if (
-        !query ||
-        !target
+        typeof searchTerm !== "string" ||
+        searchTerm.trim() === ""
     ) {
-        return "";
+        return [];
     }
 
     try {
@@ -240,7 +249,7 @@ async function retrieveKnowledge(query, target) {
             "https://ja.wikipedia.org/w/api.php" +
             "?action=opensearch" +
             "&search=" +
-            encodeURIComponent(query) +
+            encodeURIComponent(searchTerm.trim()) +
             "&limit=5" +
             "&namespace=0" +
             "&format=json";
@@ -257,7 +266,7 @@ async function retrieveKnowledge(query, target) {
             );
 
         if (!searchResponse.ok) {
-            return "";
+            return [];
         }
 
         const searchData =
@@ -267,22 +276,56 @@ async function retrieveKnowledge(query, target) {
             !Array.isArray(searchData) ||
             !Array.isArray(searchData[1])
         ) {
-            return "";
+            return [];
         }
 
-        const titles =
-            searchData[1]
-                .filter(
-                    title =>
-                        typeof title === "string" &&
-                        title.trim() !== ""
+        return searchData[1]
+            .filter(
+                title =>
+                    typeof title === "string" &&
+                    title.trim() !== ""
+            )
+            .slice(0, 5);
+
+    } catch (error) {
+
+        return [];
+
+    }
+}
+
+
+async function retrieveWikipediaPages(titles) {
+
+    if (
+        !Array.isArray(titles) ||
+        titles.length === 0
+    ) {
+        return "";
+    }
+
+    try {
+
+        const uniqueTitles =
+            [
+                ...new Set(
+                    titles
+                        .filter(
+                            title =>
+                                typeof title === "string" &&
+                                title.trim() !== ""
+                        )
+                        .map(
+                            title =>
+                                title.trim()
+                        )
                 )
-                .slice(0, 3);
+            ]
+            .slice(0, 5);
 
-        if (titles.length === 0) {
+        if (uniqueTitles.length === 0) {
             return "";
         }
-
 
         const pageQuery =
             "https://ja.wikipedia.org/w/api.php" +
@@ -294,9 +337,8 @@ async function retrieveKnowledge(query, target) {
             "&format=json" +
             "&titles=" +
             encodeURIComponent(
-                titles.join("|")
+                uniqueTitles.join("|")
             );
-
 
         const pageResponse =
             await fetch(
@@ -309,19 +351,15 @@ async function retrieveKnowledge(query, target) {
                 }
             );
 
-
         if (!pageResponse.ok) {
             return "";
         }
 
-
         const pageData =
             await pageResponse.json();
 
-
         const pages =
             pageData?.query?.pages;
-
 
         if (
             !pages ||
@@ -330,11 +368,11 @@ async function retrieveKnowledge(query, target) {
             return "";
         }
 
-
         const contexts = [];
 
-
-        for (const page of Object.values(pages)) {
+        for (
+            const page of Object.values(pages)
+        ) {
 
             if (
                 !page ||
@@ -350,20 +388,29 @@ async function retrieveKnowledge(query, target) {
 
             const extract =
                 typeof page.extract === "string"
-                    ? page.extract
+                    ? page.extract.trim()
                     : "";
 
-            if (!extract.trim()) {
+            if (!extract) {
                 continue;
             }
+
+            /*
+             * Keep the retrieved context bounded.
+             * The retrieval layer should provide useful
+             * evidence, not overwhelm the interpretation
+             * model with unrelated text.
+             */
+
+            const boundedExtract =
+                extract.slice(0, 3500);
 
             contexts.push(
                 `SOURCE: Wikipedia\n` +
                 `TITLE: ${title}\n` +
-                `CONTENT:\n${extract}`
+                `CONTENT:\n${boundedExtract}`
             );
         }
-
 
         return contexts.join(
             "\n\n--------------------------------\n\n"
@@ -371,15 +418,75 @@ async function retrieveKnowledge(query, target) {
 
     } catch (error) {
 
+        return "";
+
+    }
+}
+
+
+async function retrieveKnowledge(query, target) {
+
+    if (
+        typeof target !== "string" ||
+        target.trim() === ""
+    ) {
+        return "";
+    }
+
+    try {
+
+        /*
+         * First priority:
+         * Search the actual Target Vessel expression.
+         *
+         * This prevents an AI-generated, overly specific
+         * query from accidentally missing the canonical page.
+         */
+
+        const targetTitles =
+            await searchWikipedia(
+                target
+            );
+
+        /*
+         * Second priority:
+         * If the direct target search produces nothing,
+         * use the generated knowledge query as fallback.
+         */
+
+        let titles =
+            targetTitles;
+
+        if (
+            titles.length === 0 &&
+            typeof query === "string" &&
+            query.trim() !== ""
+        ) {
+
+            titles =
+                await searchWikipedia(
+                    query
+                );
+
+        }
+
+        if (titles.length === 0) {
+            return "";
+        }
+
+        return await retrieveWikipediaPages(
+            titles
+        );
+
+    } catch (error) {
+
         /*
          * Knowledge retrieval failure must NOT
          * become a C3PE result.
-         *
-         * The system can still perform ordinary
-         * interpretation from the user's text.
          */
 
         return "";
+
     }
 }
 
@@ -535,6 +642,17 @@ Do not silently convert unsupported claims into facts.
 Use the available information only when it actually supports
 the relevant C3PE variable.
 
+When public knowledge context is supplied, actively examine it
+for facts relevant to the user's question before deciding
+that a variable is null.
+
+However, do not infer a C3PE condition merely because a source
+describes intelligence, personality, behavior, or other
+functional characteristics.
+
+The retrieved context is evidence for interpretation, not a
+replacement for the C3PE definitions.
+
 Your output is an ASSUMED INTERPRETATION.
 It may be wrong.
 
@@ -555,7 +673,6 @@ Never output CONSCIOUSNESS_ESTABLISHED.
 Return only the requested JSON object.
 `;
 
-
     const contextSection =
         knowledgeContext.trim() !== ""
             ? `
@@ -573,7 +690,6 @@ retrieved.
 
 END PUBLIC KNOWLEDGE CONTEXT.
 `;
-
 
     const targetSection =
         extractedTarget &&
@@ -595,7 +711,6 @@ END PREVIOUS TARGET EXTRACTION.
 `
             : "";
 
-
     const userPrompt = `
 Analyze the following C3PE case.
 
@@ -606,7 +721,6 @@ ${targetSection}
 
 ${contextSection}
 `;
-
 
     const response =
         await env.AI.run(
@@ -633,7 +747,6 @@ ${contextSection}
             }
         );
 
-
     return response.response;
 }
 
@@ -655,13 +768,6 @@ function validateAIResult(result) {
         );
     }
 
-
-    /*
-     * UNKNOWN target Vessel is allowed.
-     * It will be handled by the UI as
-     * BOUNDARY_UNDEFINED.
-     */
-
     if (
         result.targetVessel !== null &&
         (
@@ -674,7 +780,6 @@ function validateAIResult(result) {
         );
     }
 
-
     if (
         result.targetVesselId !== null &&
         (
@@ -686,7 +791,6 @@ function validateAIResult(result) {
             "TARGET_VESSEL_ID_INVALID"
         );
     }
-
 
     for (
         const key of [
@@ -710,14 +814,12 @@ function validateAIResult(result) {
 
     }
 
-
     const validIdentityStatuses = [
         "CONTINUOUS",
         "NEW_INSTANCE",
         "MULTIPLEXED",
         "NULL"
     ];
-
 
     if (
         result.identityStatus !== null &&
@@ -731,7 +833,6 @@ function validateAIResult(result) {
         );
 
     }
-
 
     for (
         const key of [
@@ -754,7 +855,6 @@ function validateAIResult(result) {
 
     }
 
-
     return true;
 }
 
@@ -775,7 +875,6 @@ export default {
         const url =
             new URL(request.url);
 
-
         /*
          * ----------------------------------------------------
          * AI translation endpoint
@@ -792,7 +891,6 @@ export default {
 
                 const body =
                     await request.json();
-
 
                 if (
                     !body ||
@@ -813,21 +911,15 @@ export default {
 
                 }
 
-
                 const input =
                     body.text.trim();
-
 
                 /*
                  * STEP 1
                  * Identify the evaluation target.
-                 *
-                 * This stage does not perform
-                 * C3PE evaluation.
                  */
 
                 let extractedTarget = null;
-
 
                 try {
 
@@ -839,18 +931,8 @@ export default {
 
                 } catch (error) {
 
-                    /*
-                     * Target extraction failure does not
-                     * automatically mean the whole request
-                     * is invalid.
-                     *
-                     * The main interpretation layer may
-                     * still attempt to identify the target.
-                     */
-
                     extractedTarget = null;
                 }
-
 
                 /*
                  * STEP 2
@@ -859,11 +941,9 @@ export default {
 
                 let knowledgeContext = "";
 
-
                 if (
                     extractedTarget &&
-                    extractedTarget.targetVessel &&
-                    extractedTarget.knowledgeQuery
+                    extractedTarget.targetVessel
                 ) {
 
                     knowledgeContext =
@@ -874,13 +954,9 @@ export default {
 
                 }
 
-
                 /*
                  * STEP 3
-                 * Interpret the original input together
-                 * with retrieved contextual information.
-                 *
-                 * This remains an interpretation layer.
+                 * Interpret original input + context.
                  */
 
                 const aiResult =
@@ -891,7 +967,6 @@ export default {
                         extractedTarget
                     );
 
-
                 /*
                  * STEP 4
                  * Validate normalized C3PE input.
@@ -901,13 +976,9 @@ export default {
                     aiResult
                 );
 
-
                 /*
                  * STEP 5
-                 * Return the normalized interpretation.
-                 *
-                 * The deterministic C3PE Core remains
-                 * outside this Worker.
+                 * Return normalized interpretation.
                  */
 
                 return Response.json({
@@ -928,7 +999,6 @@ export default {
 
                 });
 
-
             } catch (error) {
 
                 return Response.json(
@@ -947,7 +1017,6 @@ export default {
             }
 
         }
-
 
         /*
          * ----------------------------------------------------
@@ -977,7 +1046,6 @@ export default {
             });
 
         }
-
 
         /*
          * ----------------------------------------------------
