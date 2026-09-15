@@ -1,15 +1,117 @@
 // ============================================================
-// C3PE — Minimal AI Interpretation Rules
+// C3PE — Cloudflare Workers AI Translation Layer
 // v3.6.2
 // ============================================================
 //
-// AIの役割:
-//   自然言語 → C3PE入力値への変換
+// Architecture:
 //
-// C3PE Coreの役割:
-//   正規化された入力 → 決定論的な論理計算
+// Target Vessel + Natural Language
+//          ↓
+// Cloudflare Workers AI
+//          ↓
+// C1 / A / B / Article III / Article IV evidence
+//          ↓
+// C3PE deterministic core (c3pe.js)
 //
-// AIはC3PEの最終判定を行わない。
+// AI does NOT calculate the final C3PE result.
+// ============================================================
+
+const MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
+
+
+// ============================================================
+// C3PE AI OUTPUT SCHEMA
+// ============================================================
+
+const C3PE_SCHEMA = {
+    type: "object",
+
+    properties: {
+
+        targetVessel: {
+            type: ["string", "null"]
+        },
+
+        targetVesselId: {
+            type: ["string", "null"]
+        },
+
+        C1: {
+            type: ["integer", "null"],
+            enum: [0, 1, null]
+        },
+
+        C1Reason: {
+            type: "string"
+        },
+
+        A: {
+            type: ["integer", "null"],
+            enum: [0, 1, null]
+        },
+
+        AReason: {
+            type: "string"
+        },
+
+        B: {
+            type: ["integer", "null"],
+            enum: [0, 1, null]
+        },
+
+        BReason: {
+            type: "string"
+        },
+
+        identityStatus: {
+            type: ["string", "null"],
+            enum: [
+                "CONTINUOUS",
+                "NEW_INSTANCE",
+                "MULTIPLEXED",
+                "NULL",
+                null
+            ]
+        },
+
+        identityReason: {
+            type: "string"
+        },
+
+        causalEvidence: {
+            type: "array"
+        },
+
+        boundaryStatus: {
+            type: "string",
+            enum: [
+                "DEFINED",
+                "BOUNDARY_UNDEFINED"
+            ]
+        }
+    },
+
+    required: [
+        "targetVessel",
+        "targetVesselId",
+        "C1",
+        "C1Reason",
+        "A",
+        "AReason",
+        "B",
+        "BReason",
+        "identityStatus",
+        "identityReason",
+        "causalEvidence",
+        "boundaryStatus"
+    ],
+
+    additionalProperties: false
+};
+
+
+// ============================================================
+// C3PE AI RULES
 // ============================================================
 
 const C3PE_AI_RULES = `
@@ -197,3 +299,468 @@ Return JSON only.
 
 The final C3PE logical result MUST be calculated outside the AI.
 `;
+
+
+// ============================================================
+// AI INTERPRETATION
+// ============================================================
+
+async function interpretWithAI(
+    targetVessel,
+    text,
+    env
+) {
+
+    const userPrompt = `
+AUTHORITATIVE TARGET VESSEL:
+
+${targetVessel}
+
+The above Target Vessel was supplied separately by the user.
+
+Treat it as authoritative.
+
+Return the Target Vessel exactly as provided.
+
+DO NOT infer another target from the case description.
+
+==================================================
+
+USER CASE DESCRIPTION:
+
+${text}
+
+==================================================
+
+Analyze the case according to C3PE v3.6.2.
+Return JSON only.
+`;
+
+    const response = await env.AI.run(
+        MODEL,
+        {
+            messages: [
+                {
+                    role: "system",
+                    content: C3PE_AI_RULES
+                },
+                {
+                    role: "user",
+                    content: userPrompt
+                }
+            ],
+
+            response_format: {
+                type: "json_schema",
+                json_schema: C3PE_SCHEMA
+            },
+
+            temperature: 0
+        }
+    );
+
+    const result = response?.response;
+
+    if (
+        !result ||
+        typeof result !== "object"
+    ) {
+        throw new Error(
+            "AI_RESULT_INVALID"
+        );
+    }
+
+    /*
+     * Target Vessel is authoritative OUTSIDE the AI.
+     *
+     * Even if the AI returns something different,
+     * the Worker restores the exact user-provided value.
+     */
+
+    result.targetVessel = targetVessel;
+    result.targetVesselId = targetVessel;
+    result.boundaryStatus = "DEFINED";
+
+    return result;
+}
+
+
+// ============================================================
+// VALIDATION
+// ============================================================
+
+function validateAIResult(result) {
+
+    if (
+        !result ||
+        typeof result !== "object"
+    ) {
+        throw new Error(
+            "AI_RESULT_INVALID"
+        );
+    }
+
+    if (
+        typeof result.targetVessel !== "string" ||
+        result.targetVessel.trim() === ""
+    ) {
+        throw new Error(
+            "TARGET_VESSEL_INVALID"
+        );
+    }
+
+    if (
+        typeof result.targetVesselId !== "string" ||
+        result.targetVesselId.trim() === ""
+    ) {
+        throw new Error(
+            "TARGET_VESSEL_ID_INVALID"
+        );
+    }
+
+    for (
+        const key of [
+            "C1",
+            "A",
+            "B"
+        ]
+    ) {
+
+        if (
+            result[key] !== null &&
+            result[key] !== 0 &&
+            result[key] !== 1
+        ) {
+            throw new Error(
+                `${key}_INVALID`
+            );
+        }
+    }
+
+    const validIdentityStatuses = [
+        "CONTINUOUS",
+        "NEW_INSTANCE",
+        "MULTIPLEXED",
+        "NULL"
+    ];
+
+    if (
+        result.identityStatus !== null &&
+        !validIdentityStatuses.includes(
+            result.identityStatus
+        )
+    ) {
+        throw new Error(
+            "IDENTITY_STATUS_INVALID"
+        );
+    }
+
+    for (
+        const key of [
+            "C1Reason",
+            "AReason",
+            "BReason",
+            "identityReason"
+        ]
+    ) {
+
+        if (
+            typeof result[key] !== "string"
+        ) {
+            throw new Error(
+                `${key}_INVALID`
+            );
+        }
+    }
+
+    if (
+        !Array.isArray(
+            result.causalEvidence
+        )
+    ) {
+        throw new Error(
+            "CAUSAL_EVIDENCE_INVALID"
+        );
+    }
+
+    return true;
+}
+
+
+// ============================================================
+// MAIN WORKER
+// ============================================================
+
+export default {
+
+    async fetch(request, env) {
+
+        const url = new URL(
+            request.url
+        );
+
+
+        // ====================================================
+        // TEST ENDPOINT
+        // ====================================================
+
+        if (
+            url.pathname ===
+            "/api/c3pe-test"
+        ) {
+
+            return Response.json({
+                ok: true,
+                service: "C3PE Worker",
+                version: "3.6.2",
+                aiBinding: !!env.AI
+            });
+        }
+
+
+        // ====================================================
+        // C3PE PROFILE ENDPOINT
+        // ====================================================
+
+        if (
+            url.pathname ===
+            "/api/c3pe-profile"
+        ) {
+
+            if (
+                request.method !==
+                "POST"
+            ) {
+
+                return Response.json(
+                    {
+                        ok: false,
+                        error:
+                            "METHOD_NOT_ALLOWED"
+                    },
+                    {
+                        status: 405
+                    }
+                );
+            }
+
+
+            let body;
+
+            try {
+
+                body =
+                    await request.json();
+
+            } catch (error) {
+
+                return Response.json(
+                    {
+                        ok: false,
+                        error:
+                            "INVALID_JSON"
+                    },
+                    {
+                        status: 400
+                    }
+                );
+            }
+
+
+            const targetVessel =
+                typeof body?.targetVessel ===
+                "string"
+                    ? body.targetVessel.trim()
+                    : "";
+
+            const text =
+                typeof body?.text ===
+                "string"
+                    ? body.text.trim()
+                    : "";
+
+
+            // =================================================
+            // TARGET VESSEL IS REQUIRED
+            // =================================================
+
+            if (
+                targetVessel === ""
+            ) {
+
+                return Response.json({
+                    ok: true,
+                    source:
+                        "Cloudflare Workers AI",
+                    model: MODEL,
+                    c3peVersion:
+                        "3.6.2",
+
+                    interpretation: {
+                        targetVessel: null,
+                        targetVesselId: null,
+
+                        C1: null,
+                        C1Reason:
+                            "Target Vessel is undefined.",
+
+                        A: null,
+                        AReason:
+                            "Target Vessel is undefined.",
+
+                        B: null,
+                        BReason:
+                            "Target Vessel is undefined.",
+
+                        identityStatus: null,
+
+                        identityReason:
+                            "Target Vessel is undefined.",
+
+                        causalEvidence: [],
+
+                        boundaryStatus:
+                            "BOUNDARY_UNDEFINED"
+                    }
+                });
+            }
+
+
+            // =================================================
+            // NATURAL LANGUAGE IS OPTIONAL
+            // =================================================
+
+            if (
+                text === ""
+            ) {
+
+                return Response.json({
+                    ok: true,
+                    source:
+                        "Cloudflare Workers AI",
+                    model: MODEL,
+                    c3peVersion:
+                        "3.6.2",
+
+                    interpretation: {
+                        targetVessel:
+                            targetVessel,
+
+                        targetVesselId:
+                            targetVessel,
+
+                        C1: null,
+
+                        C1Reason:
+                            "Insufficient information.",
+
+                        A: null,
+
+                        AReason:
+                            "Insufficient information.",
+
+                        B: null,
+
+                        BReason:
+                            "Insufficient information.",
+
+                        identityStatus:
+                            null,
+
+                        identityReason:
+                            "Insufficient information.",
+
+                        causalEvidence: [],
+
+                        boundaryStatus:
+                            "DEFINED"
+                    }
+                });
+            }
+
+
+            // =================================================
+            // CLOUDFARE WORKERS AI
+            // =================================================
+
+            try {
+
+                const interpretation =
+                    await interpretWithAI(
+                        targetVessel,
+                        text,
+                        env
+                    );
+
+
+                validateAIResult(
+                    interpretation
+                );
+
+
+                return Response.json({
+
+                    ok: true,
+
+                    source:
+                        "Cloudflare Workers AI",
+
+                    model:
+                        MODEL,
+
+                    c3peVersion:
+                        "3.6.2",
+
+                    interpretation
+
+                });
+
+            } catch (error) {
+
+                return Response.json(
+                    {
+                        ok: false,
+
+                        source:
+                            "Cloudflare Workers AI",
+
+                        model:
+                            MODEL,
+
+                        c3peVersion:
+                            "3.6.2",
+
+                        error:
+                            error?.message ||
+                            "AI_TRANSLATION_ERROR"
+                    },
+                    {
+                        status: 500
+                    }
+                );
+            }
+        }
+
+
+        // ====================================================
+        // STATIC ASSETS
+        // ====================================================
+
+        if (
+            env.ASSETS
+        ) {
+
+            return env.ASSETS.fetch(
+                request
+            );
+        }
+
+
+        return new Response(
+            "Not Found",
+            {
+                status: 404
+            }
+        );
+    }
+};
