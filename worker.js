@@ -1286,6 +1286,9 @@ Subjective identity is bound to the Vessel.
 
 CONTINUOUS:
 Same subjective address maintained across Vessel state changes.
+Do NOT output CONTINUOUS merely because subjective identity is bound to the Vessel.
+CONTINUOUS requires explicit evidence establishing continuity of the same subjective address across Vessel state changes.
+If such evidence is not available, identityStatus must be null.
 
 NEW_INSTANCE:
 New subjective address established in another Vessel.
