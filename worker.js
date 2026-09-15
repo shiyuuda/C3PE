@@ -517,13 +517,30 @@ IMPORTANT:
 UNKNOWN and 0 are NOT the same.
 
 Use 0 only when the available information provides sufficient
-information to positively determine that the condition is absent.
+evidence that the relevant condition is absent.
 
-If the available information does not provide enough
-information to determine whether a condition is 0 or 1,
-output null.
+Use 1 when the available information provides sufficient
+evidence that the relevant condition is present.
 
-NEVER convert uncertainty or lack of information into 0.
+Use null only when the available information genuinely does
+not permit a reasonable determination between 0 and 1.
+
+Do NOT require a single literal sentence that exactly repeats
+the C3PE definition before selecting 1.
+
+The available information may establish a C3PE condition
+through multiple compatible statements, descriptions of
+internal experience, explicitly described mental states,
+first-person perspective, self-directed intentions, or
+self-preserving operations.
+
+When several pieces of contextual information jointly support
+a condition, evaluate them together rather than treating each
+statement in isolation.
+
+Do NOT turn uncertainty into 0.
+
+Do NOT turn mere possibility into 1.
 
 The available contextual information may come from public
 knowledge sources.
@@ -560,24 +577,40 @@ as targetVesselId.
 Do NOT invent numerical IDs or additional identifying
 information.
 
+
 C1:
 Subjective Experience.
 
-1 only when the available information supports that the target
-Vessel experiences its own existence as a first-person
-subjective state.
+C1 = 1 when the available information sufficiently supports
+that the target Vessel experiences its own existence as a
+first-person subjective state.
 
-0 only when the available information supports that such
-subjective experience is absent.
+Evidence may include, for example:
+- explicitly described first-person experience
+- explicitly described subjective awareness of its own existence
+- internally experienced thoughts or feelings presented as
+  belonging to the target itself
+- a clearly described first-person point of view
+- other contextual descriptions that directly establish the
+  target's own subjective experience
 
-If there is insufficient information, output C1 = null.
+The evidence does NOT need to use the exact words
+"first-person subjective experience" if its meaning clearly
+establishes that condition.
+
+C1 = 0 only when the available information sufficiently
+supports that such subjective experience is absent or that
+the target explicitly lacks the relevant subjective state.
+
+If the information genuinely cannot distinguish between
+presence and absence, output C1 = null.
 
 Do NOT infer C1 merely from:
 - intelligence
 - information processing
 - memory
-- self-recognition
-- behavior
+- self-recognition alone
+- behavior alone
 - complexity
 - functional sophistication
 - being a fictional character
@@ -585,27 +618,60 @@ Do NOT infer C1 merely from:
 - being an AI
 - being a robot
 
+However, if those descriptions are accompanied by actual
+evidence of first-person subjective experience, that evidence
+may be used for C1.
+
+
 A:
 Cognitive Recognition for self-maintenance.
 
-1 when the system has internal orientation, intent, or cognitive
+A = 1 when the available information sufficiently supports
+that the system has internal orientation, intent, or cognitive
 processing directed toward preserving itself.
 
-0 only when the available information supports that such
-cognitive self-maintenance is absent.
+Evidence may include:
+- an explicitly stated intention to survive or preserve itself
+- internally directed reasoning about its own preservation
+- deliberate decisions made for its own continued existence
+- recognition of threats to itself followed by self-directed
+  preservation reasoning
 
-If insufficient information exists, output A = null.
+A = 0 only when the available information sufficiently
+supports that such cognitive self-maintenance is absent.
+
+If the information genuinely cannot distinguish between
+presence and absence, output A = null.
+
+Do not infer A merely from general intelligence,
+problem-solving ability, or ordinary behavior.
+
 
 B:
 Functional Operation for self-maintenance.
 
-1 when the system itself performs physical, mechanical,
+B = 1 when the available information sufficiently supports
+that the system itself performs physical, mechanical,
 or structural operations directed toward preserving itself.
 
-0 only when the available information supports that such
-functional self-maintenance is absent.
+Evidence may include:
+- physical actions that directly preserve the target's own
+  structure
+- mechanical operations performed by the target to prevent
+  its own destruction
+- structural self-repair
+- deliberate physical preservation of its own operational
+  structure
 
-If insufficient information exists, output B = null.
+B = 0 only when the available information sufficiently
+supports that such functional self-maintenance is absent.
+
+If the information genuinely cannot distinguish between
+presence and absence, output B = null.
+
+Do not infer B merely from the fact that the target can act,
+move, function, or perform tasks.
+
 
 Article III:
 Subjective identity is bound to the Vessel.
@@ -613,13 +679,21 @@ Subjective identity is bound to the Vessel.
 A copy in another Vessel is not automatically the same
 subjective address.
 
-If the identity status cannot be determined:
+If the identity status can be determined from the available
+information, select the corresponding status.
+
+If the identity status genuinely cannot be determined:
 identityStatus = null
 
 NULL:
 No active subjective identity is established.
 
-Do NOT use NULL merely because information is insufficient.
+IMPORTANT:
+Do NOT use NULL merely as a substitute for insufficient
+information.
+
+Use NULL only when the information establishes that no active
+subjective identity exists.
 
 CONTINUOUS:
 The same subjective address is logically maintained across
@@ -632,6 +706,7 @@ MULTIPLEXED:
 Two or more independent subjective addresses are active within
 one Vessel.
 
+
 IMPORTANT SOURCE RULE:
 
 The contextual information may contain statements that are
@@ -642,13 +717,20 @@ Do not silently convert unsupported claims into facts.
 Use the available information only when it actually supports
 the relevant C3PE variable.
 
-When public knowledge context is supplied, actively examine it
-for facts relevant to the user's question before deciding
-that a variable is null.
+When public knowledge context is supplied, actively examine
+the entire relevant context for evidence before deciding that
+a variable is null.
 
-However, do not infer a C3PE condition merely because a source
-describes intelligence, personality, behavior, or other
-functional characteristics.
+Distinguish between:
+1. evidence that a condition is present,
+2. evidence that a condition is absent,
+3. information that is genuinely insufficient.
+
+Do not automatically classify category 3 whenever the source
+does not literally state the C3PE definition.
+
+At the same time, do not manufacture evidence that is not
+present in the supplied information.
 
 The retrieved context is evidence for interpretation, not a
 replacement for the C3PE definitions.
@@ -660,7 +742,10 @@ The reason fields must explain why each value was selected.
 
 When outputting null, explicitly state that the available
 information does not provide enough information to determine
-the value.
+whether the condition is present or absent.
+
+When outputting 1 or 0, identify the relevant evidence or
+combination of evidence supporting that value.
 
 Never output a final consciousness judgment.
 
