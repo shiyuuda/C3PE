@@ -1923,6 +1923,24 @@ export default {
                         processedEvidence
                     );
 
+if (
+    aiResult.identityStatus === "CONTINUOUS"
+) {
+
+    const continuityEvidence =
+        Array.isArray(processedEvidence.evidence) &&
+        processedEvidence.evidence.some(
+            item =>
+                item.identitySupport === "CONTINUOUS"
+        );
+
+    if (!continuityEvidence) {
+        aiResult.identityStatus = null;
+        aiResult.identityReason =
+            "Insufficient validated evidence to establish continuity of the same subjective address.";
+    }
+
+}
 
                 /*
                  * =================================================
