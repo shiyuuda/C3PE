@@ -775,69 +775,113 @@ END PUBLIC KNOWLEDGE CONTEXT.
     return response.response;
 }
 
-
 /*
- * ============================================================
- * LAYER 3
+ * ------------------------------------------------------------
  * SOURCE RELIABILITY FILTER
- * ============================================================
- *
- * Current implementation has one external source class:
- * Wikipedia.
- *
- * This layer therefore identifies source provenance and
- * rejects malformed / unidentified evidence.
- * ============================================================
+ * ------------------------------------------------------------
  */
 
-function sourceReliabilityFilter(evidence) {
+function sourceReliabilityFilter(
+    evidence
+) {
 
     if (!Array.isArray(evidence)) {
         return [];
     }
 
-    return evidence.filter(item => {
+    return evidence.filter(
+        item => {
 
-        if (
-            !item ||
-            typeof item !== "object"
-        ) {
-            return false;
+            if (
+                !item ||
+                typeof item !== "object"
+            ) {
+                return false;
+            }
+
+            if (
+                typeof item.sourceTitle !== "string" ||
+                typeof item.statement !== "string"
+            ) {
+                return false;
+            }
+
+            if (
+                ![
+                    "DIRECT",
+                    "RELATED",
+                    "UNRELATED"
+                ].includes(
+                    item.targetRelation
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![-1, 0, 1].includes(
+                    item.C1Support
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![-1, 0, 1].includes(
+                    item.ASupport
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![-1, 0, 1].includes(
+                    item.BSupport
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![
+                    "CONTINUOUS",
+                    "NEW_INSTANCE",
+                    "MULTIPLEXED",
+                    "NULL",
+                    "NONE"
+                ].includes(
+                    item.identitySupport
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![0, 1].includes(
+                    item.directness
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                ![0, 1].includes(
+                    item.forbiddenInference
+                )
+            ) {
+                return false;
+            }
+
+            return true;
         }
-
-        if (
-            typeof item.sourceTitle !== "string" ||
-            item.sourceTitle.trim() === ""
-        ) {
-            return false;
-        }
-
-        if (
-            typeof item.statement !== "string" ||
-            item.statement.trim() === ""
-        ) {
-            return false;
-        }
-
-        /*
-         * Current retrieval source is Wikipedia.
-         *
-         * This does not mean Wikipedia is treated as absolute
-         * truth. It only means that the provenance is known.
-         */
-
-        return true;
-
-    });
-
+    );
 }
 
 
 /*
- * ============================================================
- * LAYER 4
+ * ------------------------------------------------------------
  * EVIDENCE RELEVANCE FILTER
- * ============================================================
+ * ------------------------------------------------------------
  */
 
 function evidenceRelevanceFilter(
@@ -848,38 +892,32 @@ function evidenceRelevanceFilter(
         return [];
     }
 
-    return evidence.filter(item => {
+    return evidence.filter(
+        item => {
 
-        if (
-            item.targetRelation === "UNRELATED"
-        ) {
-            return false;
+            if (
+                item.targetRelation ===
+                "UNRELATED"
+            ) {
+                return false;
+            }
+
+            if (
+                item.directness !== 1
+            ) {
+                return false;
+            }
+
+            return true;
         }
-
-        if (
-            item.directness !== 1
-        ) {
-            return false;
-        }
-
-        return true;
-
-    });
-
+    );
 }
 
 
 /*
- * ============================================================
- * LAYER 5
- * C1 / A / B / ARTICLE III CLASSIFICATION
- *
- * Classification has already been performed by the
- * interpretation layer.
- *
- * This function normalizes the structure so that later
- * deterministic filters operate only on valid states.
- * ============================================================
+ * ------------------------------------------------------------
+ * NORMALIZE EVIDENCE
+ * ------------------------------------------------------------
  */
 
 function normalizeEvidence(
@@ -890,19 +928,18 @@ function normalizeEvidence(
         return [];
     }
 
-    return evidence
-        .filter(
-            item =>
-                item &&
-                typeof item === "object"
-        )
-        .map(item => ({
+    return evidence.map(
+        item => ({
 
             sourceTitle:
-                item.sourceTitle,
+                String(
+                    item.sourceTitle || ""
+                ).trim(),
 
             statement:
-                item.statement,
+                String(
+                    item.statement || ""
+                ).trim(),
 
             targetRelation:
                 item.targetRelation,
@@ -925,20 +962,15 @@ function normalizeEvidence(
             forbiddenInference:
                 item.forbiddenInference
 
-        }));
-
+        })
+    );
 }
 
 
 /*
- * ============================================================
- * LAYER 6
- * FORBIDDEN-INFERENCE FILTER
- * ============================================================
- *
- * Any evidence explicitly marked as requiring a forbidden
- * inference is removed before C3PE interpretation.
- * ============================================================
+ * ------------------------------------------------------------
+ * FORBIDDEN INFERENCE FILTER
+ * ------------------------------------------------------------
  */
 
 function forbiddenInferenceFilter(
@@ -953,463 +985,497 @@ function forbiddenInferenceFilter(
         item =>
             item.forbiddenInference !== 1
     );
-
 }
 
 
 /*
- * ============================================================
- * LAYER 7
+ * ------------------------------------------------------------
  * CONTRADICTION / CONSISTENCY FILTER
- * ============================================================
  *
- * Evidence polarity:
+ * The purpose of this layer is not to decide C3PE.
  *
- * C1:
- *   +1 = presence
- *   -1 = absence
- *
- * A:
- *   +1 = presence
- *   -1 = absence
- *
- * B:
- *   +1 = presence
- *   -1 = absence
- *
- * If both direct positive and direct negative evidence exist,
- * the corresponding variable cannot be deterministically
- * resolved from this evidence set.
- *
- * Therefore the variable becomes null.
- *
- * This is intentionally different from Article IV.
- *
- * This layer checks evidence consistency.
- * Article IV checks temporal causal consistency.
- * ============================================================
+ * It only prevents an internally contradictory evidence item
+ * set from being treated as a clean deterministic input.
+ * ------------------------------------------------------------
  */
 
 function contradictionConsistencyFilter(
     evidence
 ) {
 
-    const state = {
-
-        C1: {
-            positive: false,
-            negative: false
-        },
-
-        A: {
-            positive: false,
-            negative: false
-        },
-
-        B: {
-            positive: false,
-            negative: false
-        }
-
-    };
-
-    for (const item of evidence) {
-
-        if (item.C1Support === 1) {
-            state.C1.positive = true;
-        }
-
-        if (item.C1Support === -1) {
-            state.C1.negative = true;
-        }
-
-        if (item.ASupport === 1) {
-            state.A.positive = true;
-        }
-
-        if (item.ASupport === -1) {
-            state.A.negative = true;
-        }
-
-        if (item.BSupport === 1) {
-            state.B.positive = true;
-        }
-
-        if (item.BSupport === -1) {
-            state.B.negative = true;
-        }
-
+    if (!Array.isArray(evidence)) {
+        return [];
     }
 
-    return {
-        evidence,
-        contradictions: {
+    const seen = new Map();
 
-            C1:
-                state.C1.positive &&
-                state.C1.negative,
+    const output = [];
 
-            A:
-                state.A.positive &&
-                state.A.negative,
+    for (
+        const item of evidence
+    ) {
 
-            B:
-                state.B.positive &&
-                state.B.negative
+        const key =
+            item.statement
+                .trim()
+                .toLowerCase();
 
+        if (!key) {
+            continue;
         }
-    };
 
-}
+        const existing =
+            seen.get(key);
 
+        if (!existing) {
 
-/*
- * ============================================================
- * LAYER 8
- * UNCERTAINTY / FINAL VALIDATION
- * ============================================================
- */
+            seen.set(
+                key,
+                item
+            );
 
-function deriveEvidenceState(
-    evidence,
-    contradictions
-) {
+            output.push(item);
 
-    const derive = (
-        key,
-        supportKey
-    ) => {
+            continue;
+        }
+
+        /*
+         * Identical statement:
+         * keep only one normalized copy.
+         */
 
         if (
-            contradictions[key]
+            existing.C1Support ===
+            item.C1Support &&
+            existing.ASupport ===
+            item.ASupport &&
+            existing.BSupport ===
+            item.BSupport &&
+            existing.identitySupport ===
+            item.identitySupport
         ) {
-            return null;
-        }
 
-        let positive = false;
-        let negative = false;
-
-        for (const item of evidence) {
-
-            if (
-                item[supportKey] === 1
-            ) {
-                positive = true;
-            }
-
-            if (
-                item[supportKey] === -1
-            ) {
-                negative = true;
-            }
+            continue;
 
         }
 
-        if (
-            positive &&
-            !negative
-        ) {
-            return 1;
+        /*
+         * If two identical statements carry different
+         * classifications, do not silently select one.
+         *
+         * Remove the duplicated contradictory pair from
+         * deterministic consideration.
+         */
+
+        const index =
+            output.indexOf(
+                existing
+            );
+
+        if (index !== -1) {
+            output.splice(
+                index,
+                1
+            );
         }
 
-        if (
-            negative &&
-            !positive
-        ) {
-            return 0;
-        }
+        seen.delete(key);
+    }
 
-        return null;
-    };
-
-    return {
-
-        C1:
-            derive(
-                "C1",
-                "C1Support"
-            ),
-
-        A:
-            derive(
-                "A",
-                "ASupport"
-            ),
-
-        B:
-            derive(
-                "B",
-                "BSupport"
-            )
-
-    };
-
+    return output;
 }
 
 
 /*
  * ------------------------------------------------------------
- * Evidence Pipeline
+ * DERIVE EVIDENCE STATE
+ *
+ * IMPORTANT:
+ * This function only derives normalized evidence state.
+ *
+ * It does NOT calculate C2.
+ * It does NOT calculate Macro-Phenomenon.
+ * ------------------------------------------------------------
+ */
+
+function deriveEvidenceState(
+    evidence
+) {
+
+    const state = {
+
+        C1: null,
+        A: null,
+        B: null,
+
+        C1SupportCount: 0,
+        C1AgainstCount: 0,
+
+        ASupportCount: 0,
+        AAgainstCount: 0,
+
+        BSupportCount: 0,
+        BAgainstCount: 0
+
+    };
+
+    if (!Array.isArray(evidence)) {
+        return state;
+    }
+
+    for (
+        const item of evidence
+    ) {
+
+        if (
+            item.C1Support === 1
+        ) {
+            state.C1SupportCount++;
+        }
+
+        if (
+            item.C1Support === -1
+        ) {
+            state.C1AgainstCount++;
+        }
+
+        if (
+            item.ASupport === 1
+        ) {
+            state.ASupportCount++;
+        }
+
+        if (
+            item.ASupport === -1
+        ) {
+            state.AAgainstCount++;
+        }
+
+        if (
+            item.BSupport === 1
+        ) {
+            state.BSupportCount++;
+        }
+
+        if (
+            item.BSupport === -1
+        ) {
+            state.BAgainstCount++;
+        }
+    }
+
+    /*
+     * C1
+     */
+
+    if (
+        state.C1SupportCount > 0 &&
+        state.C1AgainstCount === 0
+    ) {
+
+        state.C1 = 1;
+
+    } else if (
+        state.C1AgainstCount > 0 &&
+        state.C1SupportCount === 0
+    ) {
+
+        state.C1 = 0;
+
+    }
+
+    /*
+     * A
+     */
+
+    if (
+        state.ASupportCount > 0 &&
+        state.AAgainstCount === 0
+    ) {
+
+        state.A = 1;
+
+    } else if (
+        state.AAgainstCount > 0 &&
+        state.ASupportCount === 0
+    ) {
+
+        state.A = 0;
+
+    }
+
+    /*
+     * B
+     */
+
+    if (
+        state.BSupportCount > 0 &&
+        state.BAgainstCount === 0
+    ) {
+
+        state.B = 1;
+
+    } else if (
+        state.BAgainstCount > 0 &&
+        state.BSupportCount === 0
+    ) {
+
+        state.B = 0;
+
+    }
+
+    return state;
+}
+
+
+/*
+ * ------------------------------------------------------------
+ * PROCESS EVIDENCE
  * ------------------------------------------------------------
  */
 
 function processEvidence(
-    rawEvidence
+    classifiedEvidence
 ) {
 
-    /*
-     * Layer 3
-     */
-    let evidence =
+    const rawEvidence =
+        Array.isArray(
+            classifiedEvidence?.evidence
+        )
+            ? classifiedEvidence.evidence
+            : [];
+
+    const reliable =
         sourceReliabilityFilter(
             rawEvidence
         );
 
-    /*
-     * Layer 4
-     */
-    evidence =
+    const relevant =
         evidenceRelevanceFilter(
-            evidence
+            reliable
         );
 
-    /*
-     * Layer 5
-     */
-    evidence =
+    const normalized =
         normalizeEvidence(
-            evidence
+            relevant
         );
 
-    /*
-     * Layer 6
-     */
-    evidence =
+    const forbiddenFiltered =
         forbiddenInferenceFilter(
-            evidence
+            normalized
         );
 
-    /*
-     * Layer 7
-     */
-    const consistency =
+    const consistent =
         contradictionConsistencyFilter(
-            evidence
+            forbiddenFiltered
         );
 
-    /*
-     * Layer 8
-     */
-    const finalState =
+    const state =
         deriveEvidenceState(
-            consistency.evidence,
-            consistency.contradictions
+            consistent
         );
 
     return {
 
         evidence:
-            consistency.evidence,
+            consistent,
 
-        contradictions:
-            consistency.contradictions,
+        evidenceCount:
+            consistent.length,
 
-        finalState
+        state
 
     };
-
 }
 
 
 /*
  * ============================================================
- * AI INTERPRETATION
- * ============================================================
+ * AI INTERPRETATION LAYER
  *
- * This is the final semantic interpretation layer.
+ * This layer converts validated evidence into normalized
+ * C3PE input values.
  *
- * It receives already-filtered evidence.
- *
- * It still does NOT calculate Macro-Phenomenon.
+ * It does NOT calculate C2 or Macro-Phenomenon.
  * ============================================================
  */
 
 async function translateWithAI(
     text,
-    env,
-    knowledgeContext = "",
-    extractedTarget = null,
-    evidencePackage = null
+    target,
+    processedEvidence,
+    env
 ) {
 
+    const evidence =
+        Array.isArray(
+            processedEvidence?.evidence
+        )
+            ? processedEvidence.evidence
+            : [];
+
+    const evidenceText =
+        evidence.length > 0
+            ? evidence
+                .map(
+                    (item, index) =>
+                        `[Evidence ${index + 1}]
+Source: ${item.sourceTitle}
+Statement: ${item.statement}
+Target Relation: ${item.targetRelation}
+C1Support: ${item.C1Support}
+ASupport: ${item.ASupport}
+BSupport: ${item.BSupport}
+IdentitySupport: ${item.identitySupport}`
+                )
+                .join("\n\n")
+            : "NO VALIDATED EVIDENCE";
+
     const systemPrompt = `
-You are the final interpretation layer of C3PE v3.6.2.
+You are the C3PE v3.6.2 semantic interpretation layer.
 
-Your task is NOT to decide whether consciousness ultimately
-exists.
+Your job is ONLY to translate validated evidence into
+normalized C3PE input variables.
 
-Your task is ONLY to translate natural-language input and
-validated contextual evidence into normalized C3PE input
-variables.
+You are NOT the deterministic C3PE calculation core.
 
-IMPORTANT:
+Therefore:
+
+DO NOT calculate C2.
+
+DO NOT calculate C1 AND C2.
+
+DO NOT calculate Macro-Phenomenon.
+
+DO NOT output CONSCIOUSNESS_ESTABLISHED.
+
+DO NOT output CONSCIOUSNESS_NOT_ESTABLISHED.
+
+The deterministic core will perform those calculations
+after your response.
+
+------------------------------------------------------------
+C1
+------------------------------------------------------------
+
+C1 = 1 ONLY when validated evidence supports that the target
+Vessel itself continuously experiences its own existence as
+a first-person subjective state within the world.
+
+C1 = 0 ONLY when validated evidence supports absence of such
+first-person subjective experience.
+
+If evidence is insufficient:
+C1 = null.
+
 UNKNOWN and 0 are NOT the same.
 
-Use 0 only when the available information provides sufficient
-evidence that the relevant condition is absent.
-
-Use 1 only when the available information provides sufficient
-evidence that the relevant condition is present.
-
-Use null when the validated evidence does not permit a
-determination.
-
-C3PE definitions:
-
-C1:
-The target Vessel experiences its own existence as a
-first-person subjective state.
-
-C2:
-C2 = A OR B.
-
-A:
-Internal orientation, intent, or cognitive processing directed
-toward preservation of the target itself.
-
-B:
-Physical, mechanical, or structural operations performed by
-the target itself toward preservation of its own structure.
-
-Article III:
-Subjective identity is bound to the Vessel.
-
-CONTINUOUS:
-Same subjective address maintained across Vessel state changes.
-Do NOT output CONTINUOUS merely because subjective identity is bound to the Vessel.
-CONTINUOUS requires explicit evidence establishing continuity of the same subjective address across Vessel state changes.
-If such evidence is not available, identityStatus must be null.
-
-NEW_INSTANCE:
-New subjective address established in another Vessel.
-
-MULTIPLEXED:
-Two or more independent subjective addresses active within
-one Vessel.
-
-NULL:
-No active subjective address is established.
-
-IMPORTANT:
-
 Do NOT infer C1 from:
+
 - intelligence
-- memory
 - information processing
-- self-recognition alone
+- memory
+- self-recognition
 - behavior
 - complexity
 - sophistication
 - being human
-- being AI
+- being an AI
 - being a robot
-- being fictional
+- being a fictional character
 
-Do NOT infer A from general intelligence or ordinary
-problem solving.
+------------------------------------------------------------
+A
+------------------------------------------------------------
 
-Do NOT infer B merely because the target can move or act.
+A = 1 ONLY when validated evidence supports internal
+orientation, intent, or cognitive processing directed toward
+preservation of the target itself.
 
-Use the validated evidence as the primary factual basis.
+A = 0 ONLY when validated evidence supports absence.
 
-If the evidence package explicitly provides a deterministic
-state for C1, A, or B and there is no contradiction, preserve
-that state.
+Otherwise:
+A = null.
 
-If the evidence package marks the variable as null because of
-insufficient evidence or contradiction, do not manufacture
-certainty.
+------------------------------------------------------------
+B
+------------------------------------------------------------
 
-Never calculate C1 AND C2.
+B = 1 ONLY when validated evidence supports physical,
+mechanical, or structural operations performed by the target
+system toward preservation of itself.
 
-Never output Macro-Phenomenon.
+B = 0 ONLY when validated evidence supports absence.
 
-Never output CONSCIOUSNESS_ESTABLISHED.
+Otherwise:
+B = null.
 
-Never output CONSCIOUSNESS_NOT_ESTABLISHED.
+------------------------------------------------------------
+ARTICLE III
+------------------------------------------------------------
 
-Return only the requested JSON object.
-`;
+Allowed values:
 
-    const contextSection =
-        knowledgeContext.trim() !== ""
-            ? `
-PUBLIC KNOWLEDGE CONTEXT:
+CONTINUOUS
+NEW_INSTANCE
+MULTIPLEXED
+NULL
 
-${knowledgeContext}
+Or JSON null when the information is insufficient to determine
+the Article III state.
 
-END PUBLIC KNOWLEDGE CONTEXT.
-`
-            : `
-PUBLIC KNOWLEDGE CONTEXT:
+IMPORTANT:
 
-No external public-information context was successfully
-retrieved.
+Do NOT output CONTINUOUS merely because subjective identity
+is bound to the Vessel.
 
-END PUBLIC KNOWLEDGE CONTEXT.
-`;
+CONTINUOUS requires explicit evidence establishing continuity
+of the same subjective address across Vessel state changes.
 
-    const targetSection =
-        extractedTarget &&
-        typeof extractedTarget === "object"
-            ? `
-PREVIOUS TARGET EXTRACTION:
+If such evidence is not available:
+identityStatus = null.
 
-Target Vessel:
-${String(
-    extractedTarget.targetVessel
-)}
+NEW_INSTANCE requires evidence of a newly established
+subjective address in a different Vessel.
 
-Target Vessel ID:
-${String(
-    extractedTarget.targetVesselId
-)}
+MULTIPLEXED requires evidence that two or more independent
+subjective addresses are simultaneously active within one
+Vessel.
 
-END PREVIOUS TARGET EXTRACTION.
-`
-            : "";
+NULL requires evidence that no active subjective address exists.
 
-    const evidenceSection =
-        evidencePackage &&
-        typeof evidencePackage === "object"
-            ? `
-VALIDATED EVIDENCE PACKAGE:
+If Article III cannot be determined from validated evidence:
+identityStatus = null.
 
-${JSON.stringify(
-    evidencePackage
-)}
+------------------------------------------------------------
+GENERAL RULE
+------------------------------------------------------------
 
-END VALIDATED EVIDENCE PACKAGE.
-`
-            : `
-VALIDATED EVIDENCE PACKAGE:
+Use ONLY the validated evidence supplied to you.
 
-No validated evidence package is available.
+Do not invent facts.
 
-END VALIDATED EVIDENCE PACKAGE.
+Do not use outside knowledge to fill missing evidence.
+
+Do not transform uncertainty into 0.
+
+Do not transform category membership into C1=1.
+
+Return only the normalized interpretation JSON.
 `;
 
     const userPrompt = `
-Analyze the following C3PE case.
+ORIGINAL USER INPUT:
 
-USER INPUT:
 ${text}
 
-${targetSection}
+TARGET VESSEL:
 
-${contextSection}
+${target}
 
-${evidenceSection}
+VALIDATED EVIDENCE:
+
+${evidenceText}
 `;
 
     const response =
@@ -1442,107 +1508,57 @@ ${evidenceSection}
 
 
 /*
- * ============================================================
- * WORKER-SIDE VALIDATION
- * ============================================================
+ * ------------------------------------------------------------
+ * AI RESULT VALIDATION
+ * ------------------------------------------------------------
  */
 
-function validateAIResult(result) {
+function validateAIResult(
+    result
+) {
 
     if (
         !result ||
         typeof result !== "object"
     ) {
         throw new Error(
-            "AI_RESULT_INVALID"
+            "Invalid AI result."
         );
     }
+
+    const binaryOrNull =
+        value =>
+            value === 0 ||
+            value === 1 ||
+            value === null;
 
     if (
-        result.targetVessel !== null &&
-        (
-            typeof result.targetVessel !== "string" ||
-            result.targetVessel.trim() === ""
-        )
+        !binaryOrNull(result.C1) ||
+        !binaryOrNull(result.A) ||
+        !binaryOrNull(result.B)
     ) {
         throw new Error(
-            "TARGET_VESSEL_INVALID"
+            "Invalid C3PE binary input."
         );
     }
 
-    if (
-        result.targetVesselId !== null &&
-        (
-            typeof result.targetVesselId !== "string" ||
-            result.targetVesselId.trim() === ""
-        )
-    ) {
-        throw new Error(
-            "TARGET_VESSEL_ID_INVALID"
-        );
-    }
-
-    for (
-        const key of [
-            "C1",
-            "A",
-            "B"
-        ]
-    ) {
-
-        if (
-            result[key] !== null &&
-            result[key] !== 0 &&
-            result[key] !== 1
-        ) {
-
-            throw new Error(
-                `${key}_INVALID`
-            );
-
-        }
-
-    }
-
-    const validIdentityStatuses = [
-        "CONTINUOUS",
-        "NEW_INSTANCE",
-        "MULTIPLEXED",
-        "NULL"
-    ];
+    const allowedIdentity =
+        [
+            "CONTINUOUS",
+            "NEW_INSTANCE",
+            "MULTIPLEXED",
+            "NULL"
+        ];
 
     if (
         result.identityStatus !== null &&
-        !validIdentityStatuses.includes(
+        !allowedIdentity.includes(
             result.identityStatus
         )
     ) {
-
         throw new Error(
-            "IDENTITY_STATUS_INVALID"
+            "Invalid Article III identity status."
         );
-
-    }
-
-    for (
-        const key of [
-            "C1Reason",
-            "AReason",
-            "BReason",
-            "identityReason"
-        ]
-    ) {
-
-        if (
-            typeof result[key] !== "string"
-        ) {
-
-            throw new Error(
-                `${key}_INVALID`
-            );
-
-        }
-
     }
 
     return true;
@@ -1551,131 +1567,331 @@ function validateAIResult(result) {
 
 /*
  * ------------------------------------------------------------
- * Evidence validation
+ * EVIDENCE PACKAGE VALIDATION
  * ------------------------------------------------------------
  */
 
 function validateEvidencePackage(
-    packageData
+    processedEvidence
 ) {
 
     if (
-        !packageData ||
-        typeof packageData !== "object"
-    ) {
-        return {
-            evidence: []
-        };
-    }
-
-    if (
+        !processedEvidence ||
         !Array.isArray(
-            packageData.evidence
+            processedEvidence.evidence
         )
     ) {
-        return {
-            evidence: []
-        };
+        throw new Error(
+            "Invalid evidence package."
+        );
     }
 
-    const validSupports = [
-        -1,
-        0,
-        1
-    ];
-
-    const validRelations = [
-        "DIRECT",
-        "RELATED",
-        "UNRELATED"
-    ];
-
-    const validIdentity = [
-        "CONTINUOUS",
-        "NEW_INSTANCE",
-        "MULTIPLEXED",
-        "NULL",
-        "NONE"
-    ];
-
-    const validated = [];
-
     for (
-        const item of packageData.evidence
+        const item
+        of processedEvidence.evidence
     ) {
 
         if (
             !item ||
             typeof item !== "object"
         ) {
-            continue;
+            throw new Error(
+                "Invalid evidence item."
+            );
         }
 
         if (
-            typeof item.sourceTitle !== "string" ||
-            typeof item.statement !== "string"
-        ) {
-            continue;
-        }
-
-        if (
-            !validRelations.includes(
-                item.targetRelation
+            ![-1, 0, 1].includes(
+                item.C1Support
             )
         ) {
-            continue;
+            throw new Error(
+                "Invalid C1 evidence state."
+            );
         }
 
         if (
-            !validSupports.includes(
-                item.C1Support
-            ) ||
-            !validSupports.includes(
+            ![-1, 0, 1].includes(
                 item.ASupport
-            ) ||
-            !validSupports.includes(
+            )
+        ) {
+            throw new Error(
+                "Invalid A evidence state."
+            );
+        }
+
+        if (
+            ![-1, 0, 1].includes(
                 item.BSupport
             )
         ) {
-            continue;
+            throw new Error(
+                "Invalid B evidence state."
+            );
         }
 
         if (
-            !validIdentity.includes(
+            ![
+                "CONTINUOUS",
+                "NEW_INSTANCE",
+                "MULTIPLEXED",
+                "NULL",
+                "NONE"
+            ].includes(
                 item.identitySupport
             )
         ) {
-            continue;
+            throw new Error(
+                "Invalid Article III evidence state."
+            );
         }
-
-        if (
-            item.directness !== 0 &&
-            item.directness !== 1
-        ) {
-            continue;
-        }
-
-        if (
-            item.forbiddenInference !== 0 &&
-            item.forbiddenInference !== 1
-        ) {
-            continue;
-        }
-
-        validated.push(item);
-
     }
 
-    return {
-        evidence: validated
-    };
-
+    return true;
 }
 
 
 /*
  * ============================================================
- * HTTP
+ * DETERMINISTIC C3PE CORE
+ *
+ * AI INTERPRETATION
+ *       ↓
+ * NORMALIZED INPUT
+ *       ↓
+ * THIS FUNCTION
+ *
+ * NO AI CALCULATION OCCURS HERE.
+ * ============================================================
+ */
+
+function evaluateC3PECore(
+    normalizedInput,
+    processedEvidence
+) {
+
+    /*
+     * --------------------------------------------------------
+     * Article II — C1
+     * --------------------------------------------------------
+     */
+
+    const C1 =
+        normalizedInput?.C1 === 0 ||
+        normalizedInput?.C1 === 1
+            ? normalizedInput.C1
+            : null;
+
+
+    /*
+     * --------------------------------------------------------
+     * Article II — A
+     * --------------------------------------------------------
+     */
+
+    const A =
+        normalizedInput?.A === 0 ||
+        normalizedInput?.A === 1
+            ? normalizedInput.A
+            : null;
+
+
+    /*
+     * --------------------------------------------------------
+     * Article II — B
+     * --------------------------------------------------------
+     */
+
+    const B =
+        normalizedInput?.B === 0 ||
+        normalizedInput?.B === 1
+            ? normalizedInput.B
+            : null;
+
+
+    /*
+     * --------------------------------------------------------
+     * C2 = A OR B
+     *
+     * Deterministic Boolean Core
+     * --------------------------------------------------------
+     */
+
+    let C2 = null;
+
+    if (
+        A === 1 ||
+        B === 1
+    ) {
+
+        C2 = 1;
+
+    } else if (
+        A === 0 &&
+        B === 0
+    ) {
+
+        C2 = 0;
+
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * Macro-Phenomenon = C1 AND C2
+     *
+     * Deterministic Boolean Core
+     * --------------------------------------------------------
+     */
+
+    let macroPhenomenon = null;
+
+    if (
+        C1 === 1 &&
+        C2 === 1
+    ) {
+
+        macroPhenomenon = 1;
+
+    } else if (
+        C1 === 0 ||
+        C2 === 0
+    ) {
+
+        macroPhenomenon = 0;
+
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * Article III
+     *
+     * Identity is derived from validated evidence,
+     * not from AI's unsupported assumption.
+     * --------------------------------------------------------
+     */
+
+    const identityCandidates =
+        new Set();
+
+    if (
+        processedEvidence &&
+        Array.isArray(
+            processedEvidence.evidence
+        )
+    ) {
+
+        for (
+            const item
+            of processedEvidence.evidence
+        ) {
+
+            if (
+                item.identitySupport ===
+                    "CONTINUOUS" ||
+                item.identitySupport ===
+                    "NEW_INSTANCE" ||
+                item.identitySupport ===
+                    "MULTIPLEXED" ||
+                item.identitySupport ===
+                    "NULL"
+            ) {
+
+                identityCandidates.add(
+                    item.identitySupport
+                );
+
+            }
+
+        }
+
+    }
+
+
+    let identityStatus = null;
+
+    let identityReason =
+        "Insufficient validated evidence to determine Article III subjective identity.";
+
+
+    if (
+        identityCandidates.size === 1
+    ) {
+
+        identityStatus =
+            [
+                ...identityCandidates
+            ][0];
+
+        identityReason =
+            "Article III status derived from validated evidence.";
+
+    } else if (
+        identityCandidates.size > 1
+    ) {
+
+        identityStatus = null;
+
+        identityReason =
+            "Conflicting validated Article III identity states prevent deterministic resolution.";
+
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * Article IV
+     *
+     * Intentionally not fabricated yet.
+     * --------------------------------------------------------
+     */
+
+    return {
+
+        articleII: {
+
+            C1,
+            A,
+            B,
+            C2,
+            macroPhenomenon
+
+        },
+
+        articleIII: {
+
+            identityStatus,
+            identityReason
+
+        },
+
+        articleIV: {
+
+            causalCompossibility: null,
+
+            reason:
+                "No normalized causal model is supplied to the deterministic core yet."
+
+        },
+
+        output:
+
+            macroPhenomenon === 1
+                ? "CONSCIOUSNESS_ESTABLISHED"
+
+                : macroPhenomenon === 0
+                    ? "CONSCIOUSNESS_NOT_ESTABLISHED"
+
+                    : null
+
+    };
+
+}
+
+/*
+ * ============================================================
+ * HTTP WORKER
  * ============================================================
  */
 
@@ -1683,88 +1899,306 @@ export default {
 
     async fetch(
         request,
-        env
+        env,
+        ctx
     ) {
 
         const url =
-            new URL(request.url);
+            new URL(
+                request.url
+            );
+
+        /*
+         * ----------------------------------------------------
+         * CORS
+         * ----------------------------------------------------
+         */
+
+        const corsHeaders = {
+
+            "Access-Control-Allow-Origin":
+                "*",
+
+            "Access-Control-Allow-Methods":
+                "GET, POST, OPTIONS",
+
+            "Access-Control-Allow-Headers":
+                "Content-Type"
+
+        };
 
 
         /*
          * ----------------------------------------------------
-         * C3PE PROFILE ENDPOINT
+         * OPTIONS
+         * ----------------------------------------------------
+         */
+
+        if (
+            request.method ===
+            "OPTIONS"
+        ) {
+
+            return new Response(
+                null,
+                {
+                    status: 204,
+                    headers: corsHeaders
+                }
+            );
+
+        }
+
+
+        /*
+         * ----------------------------------------------------
+         * BASIC TEST ENDPOINT
          * ----------------------------------------------------
          */
 
         if (
             url.pathname ===
-                "/api/c3pe-profile" &&
-            request.method === "POST"
+            "/api/c3pe-test"
         ) {
+
+            return new Response(
+
+                JSON.stringify({
+
+                    ok: true,
+
+                    service:
+                        "C3PE Worker",
+
+                    version:
+                        "3.6.2",
+
+                    aiBinding:
+                        !!env.AI
+
+                }),
+
+                {
+
+                    status: 200,
+
+                    headers: {
+
+                        ...corsHeaders,
+
+                        "Content-Type":
+                            "application/json; charset=utf-8"
+
+                    }
+
+                }
+
+            );
+
+        }
+
+
+        /*
+         * ----------------------------------------------------
+         * MAIN C3PE ENDPOINT
+         * ----------------------------------------------------
+         */
+
+        if (
+            url.pathname ===
+            "/api/c3pe-profile"
+        ) {
+
+            if (
+                request.method !==
+                "POST"
+            ) {
+
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        error:
+                            "POST required."
+
+                    }),
+
+                    {
+
+                        status: 405,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * READ INPUT
+             * ------------------------------------------------
+             */
+
+            let body;
 
             try {
 
-                const body =
+                body =
                     await request.json();
 
-                if (
-                    !body ||
-                    typeof body.text !== "string" ||
-                    body.text.trim() === ""
-                ) {
+            } catch (error) {
 
-                    return Response.json(
-                        {
-                            ok: false,
-                            error:
-                                "INPUT_UNDEFINED"
-                        },
-                        {
-                            status: 400
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        error:
+                            "Invalid JSON request body."
+
+                    }),
+
+                    {
+
+                        status: 400,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
                         }
+
+                    }
+
+                );
+
+            }
+
+
+            const text =
+                typeof body?.text === "string"
+                    ? body.text.trim()
+                    : "";
+
+
+            if (!text) {
+
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        error:
+                            "text is required."
+
+                    }),
+
+                    {
+
+                        status: 400,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * STEP 1
+             *
+             * OBJECT ISOLATION
+             * ------------------------------------------------
+             */
+
+            let target;
+
+            try {
+
+                target =
+                    await extractTarget(
+                        text,
+                        env
                     );
 
-                }
+            } catch (error) {
 
-                const input =
-                    body.text.trim();
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        stage:
+                            "OBJECT_ISOLATION",
+
+                        error:
+                            error?.message ||
+                            "Target extraction failed."
+
+                    }),
+
+                    {
+
+                        status: 500,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
 
 
-                /*
-                 * =================================================
-                 * LAYER 1
-                 * TARGET / VESSEL BOUNDARY FILTER
-                 * =================================================
-                 */
+            /*
+             * ------------------------------------------------
+             * BOUNDARY CHECK
+             * ------------------------------------------------
+             */
 
-                let extractedTarget = null;
+            if (
+                !target ||
+                !target.targetVessel
+            ) {
 
-                try {
+                return new Response(
 
-                    extractedTarget =
-                        await extractTarget(
-                            input,
-                            env
-                        );
-
-                } catch (error) {
-
-                    extractedTarget = null;
-
-                }
-
-
-                /*
-                 * Boundary failure is not silently converted
-                 * into a C3PE result.
-                 */
-
-                if (
-                    !extractedTarget ||
-                    !extractedTarget.targetVessel
-                ) {
-
-                    return Response.json({
+                    JSON.stringify({
 
                         ok: true,
 
@@ -1789,25 +2223,71 @@ export default {
                                 null,
 
                             C1Reason:
-                                "Target Vessel could not be sufficiently identified.",
+                                "Target Vessel boundary could not be determined.",
 
                             A:
                                 null,
 
                             AReason:
-                                "Target Vessel could not be sufficiently identified.",
+                                "Target Vessel boundary could not be determined.",
 
                             B:
                                 null,
 
                             BReason:
-                                "Target Vessel could not be sufficiently identified.",
+                                "Target Vessel boundary could not be determined.",
 
                             identityStatus:
                                 null,
 
                             identityReason:
-                                "Target Vessel could not be sufficiently identified."
+                                "Target Vessel boundary could not be determined."
+
+                        },
+
+                        c3peResult: {
+
+                            articleII: {
+
+                                C1:
+                                    null,
+
+                                A:
+                                    null,
+
+                                B:
+                                    null,
+
+                                C2:
+                                    null,
+
+                                macroPhenomenon:
+                                    null
+
+                            },
+
+                            articleIII: {
+
+                                identityStatus:
+                                    null,
+
+                                identityReason:
+                                    "Target Vessel boundary could not be determined."
+
+                            },
+
+                            articleIV: {
+
+                                causalCompossibility:
+                                    null,
+
+                                reason:
+                                    "No target Vessel was established."
+
+                            },
+
+                            output:
+                                null
 
                         },
 
@@ -1815,238 +2295,505 @@ export default {
                             "",
 
                         evidence:
-
                             [],
 
-                        evidenceDiagnostics: {
+                        evidenceCount:
+                            0
 
-                            boundary:
-                                "BOUNDARY_UNDEFINED",
+                    }),
 
-                            retrieval:
-                                "NOT_EXECUTED"
+                    {
+
+                        status: 200,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
 
                         }
 
-                    });
+                    }
 
-                }
+                );
+
+            }
 
 
-                /*
-                 * =================================================
-                 * LAYER 2
-                 * KNOWLEDGE RETRIEVAL
-                 * =================================================
-                 */
+            /*
+             * ------------------------------------------------
+             * STEP 2
+             *
+             * KNOWLEDGE RETRIEVAL
+             * ------------------------------------------------
+             */
 
-                let knowledgeContext = "";
+            let knowledgeContext = "";
+
+            try {
 
                 knowledgeContext =
                     await retrieveKnowledge(
-                        extractedTarget.knowledgeQuery,
-                        extractedTarget.targetVessel
+
+                        target.knowledgeQuery ||
+                        target.targetVessel,
+
+                        target.targetVessel
+
                     );
 
+            } catch (error) {
 
-                /*
-                 * =================================================
-                 * LAYER 5
-                 * EVIDENCE CLASSIFICATION
-                 * =================================================
-                 */
+                knowledgeContext = "";
 
-                let rawEvidencePackage = {
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * STEP 3
+             *
+             * EVIDENCE CLASSIFICATION
+             * ------------------------------------------------
+             */
+
+            let classifiedEvidence = {
+
+                evidence: []
+
+            };
+
+
+            try {
+
+                classifiedEvidence =
+                    await classifyEvidence(
+
+                        text,
+
+                        target.targetVessel,
+
+                        knowledgeContext,
+
+                        env
+
+                    );
+
+            } catch (error) {
+
+                classifiedEvidence = {
+
                     evidence: []
+
                 };
 
-                if (
-                    knowledgeContext.trim() !== ""
-                ) {
+            }
 
-                    try {
 
-                        rawEvidencePackage =
-                            await classifyEvidence(
-                                input,
-                                extractedTarget.targetVessel,
-                                knowledgeContext,
-                                env
-                            );
+            /*
+             * ------------------------------------------------
+             * STEP 4
+             *
+             * EVIDENCE PROCESSING
+             * ------------------------------------------------
+             */
 
-                    } catch (error) {
+            let processedEvidence;
 
-                        rawEvidencePackage = {
-                            evidence: []
-                        };
+            try {
+
+                processedEvidence =
+                    processEvidence(
+                        classifiedEvidence
+                    );
+
+            } catch (error) {
+
+                processedEvidence = {
+
+                    evidence: [],
+
+                    evidenceCount: 0,
+
+                    state: {
+
+                        C1: null,
+
+                        A: null,
+
+                        B: null,
+
+                        C1SupportCount: 0,
+
+                        C1AgainstCount: 0,
+
+                        ASupportCount: 0,
+
+                        AAgainstCount: 0,
+
+                        BSupportCount: 0,
+
+                        BAgainstCount: 0
 
                     }
 
-                }
+                };
+
+            }
 
 
-                /*
-                 * Validate AI-generated evidence structure
-                 */
+            /*
+             * ------------------------------------------------
+             * STEP 5
+             *
+             * AI INTERPRETATION
+             * ------------------------------------------------
+             */
 
-                rawEvidencePackage =
-                    validateEvidencePackage(
-                        rawEvidencePackage
-                    );
+            let aiResult;
 
+            try {
 
-                /*
-                 * =================================================
-                 * LAYERS 3–8
-                 * DETERMINISTIC EVIDENCE PIPELINE
-                 * =================================================
-                 */
-
-                const processedEvidence =
-                    processEvidence(
-                        rawEvidencePackage.evidence
-                    );
-
-
-                /*
-                 * =================================================
-                 * FINAL INTERPRETATION
-                 * =================================================
-                 */
-
-                const aiResult =
+                aiResult =
                     await translateWithAI(
-                        input,
-                        env,
-                        knowledgeContext,
-                        extractedTarget,
-                        processedEvidence
+
+                        text,
+
+                        target.targetVessel,
+
+                        processedEvidence,
+
+                        env
+
                     );
 
-if (
-    aiResult.identityStatus === "CONTINUOUS"
-) {
+            } catch (error) {
 
-    const continuityEvidence =
-        Array.isArray(processedEvidence.evidence) &&
-        processedEvidence.evidence.some(
-            item =>
-                item.identitySupport === "CONTINUOUS"
-        );
+                return new Response(
 
-    if (!continuityEvidence) {
-        aiResult.identityStatus = null;
-        aiResult.identityReason =
-            "Insufficient validated evidence to establish continuity of the same subjective address.";
-    }
+                    JSON.stringify({
 
-}
+                        ok: false,
 
-                /*
-                 * =================================================
-                 * FINAL NORMALIZED INPUT VALIDATION
-                 * =================================================
-                 */
+                        stage:
+                            "CONTEXT_PROFILING",
+
+                        error:
+                            error?.message ||
+                            "AI interpretation failed."
+
+                    }),
+
+                    {
+
+                        status: 500,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * VALIDATE AI RESULT
+             * ------------------------------------------------
+             */
+
+            try {
 
                 validateAIResult(
                     aiResult
                 );
 
-
-                /*
-                 * =================================================
-                 * RETURN
-                 * =================================================
-                 *
-                 * IMPORTANT:
-                 * knowledgeContext is intentionally preserved.
-                 * =================================================
-                 */
-
-                return Response.json({
-
-                    ok: true,
-
-                    source:
-                        "Cloudflare Workers AI",
-
-                    model:
-                        MODEL,
-
-                    c3peVersion:
-                        "3.6.2",
-
-                    interpretation:
-                        aiResult,
-
-                    knowledgeContext:
-                        knowledgeContext,
-
-                    evidence:
-                        processedEvidence.evidence,
-
-                    evidenceDiagnostics: {
-
-                        evidenceCount:
-                            processedEvidence.evidence.length,
-
-                        contradictions:
-                            processedEvidence.contradictions,
-
-                        evidenceDerivedState:
-                            processedEvidence.finalState
-
-                    }
-
-                });
-
             } catch (error) {
 
-                return Response.json(
-                    {
+                return new Response(
+
+                    JSON.stringify({
+
                         ok: false,
 
+                        stage:
+                            "AI_RESULT_VALIDATION",
+
                         error:
-                            error instanceof Error
-                                ? error.message
-                                : "AI_TRANSLATION_ERROR"
-                    },
+                            error?.message ||
+                            "AI result validation failed."
+
+                    }),
+
                     {
-                        status: 500
+
+                        status: 500,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
                     }
+
                 );
 
             }
 
-        }
+
+            /*
+             * ------------------------------------------------
+             * VALIDATE EVIDENCE PACKAGE
+             * ------------------------------------------------
+             */
+
+            try {
+
+                validateEvidencePackage(
+                    processedEvidence
+                );
+
+            } catch (error) {
+
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        stage:
+                            "EVIDENCE_VALIDATION",
+
+                        error:
+                            error?.message ||
+                            "Evidence validation failed."
+
+                    }),
+
+                    {
+
+                        status: 500,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
 
 
-        /*
-         * ----------------------------------------------------
-         * CONNECTION TEST
-         * ----------------------------------------------------
-         */
+            /*
+             * ------------------------------------------------
+             * ARTICLE III CONTINUITY GUARD
+             *
+             * AI must not output CONTINUOUS unless
+             * validated evidence explicitly supports it.
+             * ------------------------------------------------
+             */
 
-        if (
-            url.pathname ===
-                "/api/c3pe-test" &&
-            request.method === "GET"
-        ) {
+            if (
+                aiResult.identityStatus ===
+                "CONTINUOUS"
+            ) {
 
-            return Response.json({
+                const continuityEvidence =
 
-                ok: true,
+                    Array.isArray(
+                        processedEvidence.evidence
+                    ) &&
 
-                service:
-                    "C3PE Worker",
+                    processedEvidence.evidence.some(
 
-                version:
-                    "3.6.2",
+                        item =>
+                            item.identitySupport ===
+                            "CONTINUOUS"
 
-                aiBinding:
-                    !!env.AI
+                    );
 
-            });
+
+                if (
+                    !continuityEvidence
+                ) {
+
+                    aiResult.identityStatus =
+                        null;
+
+                    aiResult.identityReason =
+                        "Insufficient validated evidence to establish continuity of the same subjective address.";
+
+                }
+
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * DETERMINISTIC C3PE CORE
+             *
+             * IMPORTANT:
+             *
+             * AI result is used ONLY as normalized input.
+             *
+             * C2 and Macro-Phenomenon are calculated here.
+             * ------------------------------------------------
+             */
+
+            let c3peResult;
+
+            try {
+
+                c3peResult =
+                    evaluateC3PECore(
+
+                        aiResult,
+
+                        processedEvidence
+
+                    );
+
+            } catch (error) {
+
+                return new Response(
+
+                    JSON.stringify({
+
+                        ok: false,
+
+                        stage:
+                            "DETERMINISTIC_C3PE_CORE",
+
+                        error:
+                            error?.message ||
+                            "Deterministic C3PE core failed."
+
+                    }),
+
+                    {
+
+                        status: 500,
+
+                        headers: {
+
+                            ...corsHeaders,
+
+                            "Content-Type":
+                                "application/json; charset=utf-8"
+
+                        }
+
+                    }
+
+                );
+
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * FINAL RESPONSE
+             * ------------------------------------------------
+             *
+             * interpretation:
+             *     AI semantic interpretation
+             *
+             * c3peResult:
+             *     deterministic C3PE calculation result
+             *
+             * knowledgeContext:
+             *     retained for debugging / verification
+             *
+             * evidence:
+             *     validated evidence package
+             * ------------------------------------------------
+             */
+
+            return new Response(
+
+                JSON.stringify(
+
+                    {
+
+                        ok: true,
+
+                        source:
+                            "Cloudflare Workers AI",
+
+                        model:
+                            MODEL,
+
+                        c3peVersion:
+                            "3.6.2",
+
+                        interpretation:
+                            aiResult,
+
+                        c3peResult:
+                            c3peResult,
+
+                        targetVessel:
+                            target.targetVessel,
+
+                        targetVesselId:
+                            target.targetVesselId,
+
+                        knowledgeContext:
+                            knowledgeContext,
+
+                        evidence:
+                            processedEvidence.evidence,
+
+                        evidenceCount:
+                            processedEvidence.evidenceCount,
+
+                        evidenceState:
+                            processedEvidence.state
+
+                    },
+
+                    null,
+
+                    2
+
+                ),
+
+                {
+
+                    status: 200,
+
+                    headers: {
+
+                        ...corsHeaders,
+
+                        "Content-Type":
+                            "application/json; charset=utf-8"
+
+                    }
+
+                }
+
+            );
 
         }
 
@@ -2057,8 +2804,49 @@ if (
          * ----------------------------------------------------
          */
 
-        return env.ASSETS.fetch(
-            request
+        if (
+            env.ASSETS
+        ) {
+
+            return env.ASSETS.fetch(
+                request
+            );
+
+        }
+
+
+        /*
+         * ----------------------------------------------------
+         * NOT FOUND
+         * ----------------------------------------------------
+         */
+
+        return new Response(
+
+            JSON.stringify({
+
+                ok: false,
+
+                error:
+                    "Not Found."
+
+            }),
+
+            {
+
+                status: 404,
+
+                headers: {
+
+                    ...corsHeaders,
+
+                    "Content-Type":
+                        "application/json; charset=utf-8"
+
+                }
+
+            }
+
         );
 
     }
