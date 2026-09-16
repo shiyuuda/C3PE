@@ -146,6 +146,44 @@ meaningfully mapped to C3PE.
 The purpose of using factual knowledge is interpretation and
 normalization, not invention.
 
+==================================================
+TARGET KNOWLEDGE IS VALID EVIDENCE
+==================================================
+
+When the Target Vessel is a recognizable named entity,
+including a well-known fictional character, AI system,
+animal, organism, machine, or other established subject,
+the Target Vessel itself may provide sufficient contextual
+information for interpretation.
+
+If the Target Vessel has established canonical properties
+that directly satisfy a C3PE condition, those properties may
+be used even when the user provides no additional case
+description.
+
+An empty case description does NOT mean that the Target
+Vessel has no available information.
+
+For example, if a recognizable Target Vessel is canonically
+depicted as having first-person subjective experience,
+that established depiction may be used as evidence for C1.
+
+Likewise, established canonical behavior may be used for A
+and B when it directly corresponds to their definitions.
+
+Do not require the user to restate established properties
+of a recognizable Target Vessel.
+
+All other C3PE interpretation rules remain unchanged.
+In particular, information explicitly provided in the case
+description about existence, self-maintenance, A, B,
+subjective experience, identity, copies, continuity,
+spatial relations, temporal relations, time travel,
+worldlines, causal dependencies, or other C3PE-relevant
+conditions must continue to be interpreted normally.
+
+Target knowledge supplements the case description; it does
+not replace it.
 Do NOT invent facts, events, abilities, experiences, memories,
 relationships, or properties that are not supported by the
 case description or your existing factual knowledge.
