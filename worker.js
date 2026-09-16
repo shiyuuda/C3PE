@@ -176,12 +176,45 @@ user's case description is short.
 RULE 1 — UNKNOWN
 ==================================================
 
-If the input does not provide sufficient information to determine
-a value, return null.
+The case description is not necessarily the complete source of
+information for determining C3PE input values.
 
-Do NOT convert missing information into 0.
+Before returning null, you MUST first:
 
-Do NOT invent facts.
+1. Identify what the Target Vessel refers to.
+2. Use your existing factual knowledge about that Target Vessel.
+3. Combine that knowledge with the user's case description.
+4. Identify information relevant to C1, A, B, Article III, and
+   Article IV.
+5. Map the available information to the corresponding C3PE
+   definitions.
+
+If the Target Vessel is a known entity, character, system, object,
+or other identifiable subject, use established factual knowledge
+about that subject when it is relevant to the evaluation.
+
+Do NOT require the user to explicitly state facts that are already
+established and relevant to the identified Target Vessel.
+
+However, factual knowledge MUST NOT be used to invent or assume
+unsupported facts.
+
+If, after considering both:
+
+- the user's case description, and
+- relevant established factual knowledge about the Target Vessel
+
+a value still cannot be determined with reasonable support,
+return null.
+
+Do NOT convert missing or uncertain information into 0.
+
+Do NOT invent facts, events, abilities, experiences, memories,
+relationships, or properties.
+
+NULL means that the AI cannot determine the corresponding C3PE
+input from the available information and established knowledge.
+It does NOT mean merely that the user did not explicitly state it.
 
 ==================================================
 RULE 2 — C1
