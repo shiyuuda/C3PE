@@ -439,7 +439,7 @@ DO NOT infer another target from the case description.
 
 USER CASE DESCRIPTION:
 
-${text}
+${text || "No additional case description was provided."}
 
 ==================================================
 
@@ -732,59 +732,6 @@ export default {
 
                         boundaryStatus:
                             "BOUNDARY_UNDEFINED"
-                    }
-                });
-            }
-
-
-            // =================================================
-            // NATURAL LANGUAGE IS OPTIONAL
-            // =================================================
-
-            if (
-                text === ""
-            ) {
-
-                return Response.json({
-                    ok: true,
-                    source:
-                        "Cloudflare Workers AI",
-                    model: MODEL,
-                    c3peVersion:
-                        "3.6.2",
-
-                    interpretation: {
-                        targetVessel:
-                            targetVessel,
-
-                        targetVesselId:
-                            targetVessel,
-
-                        C1: null,
-
-                        C1Reason:
-                            "Insufficient information.",
-
-                        A: null,
-
-                        AReason:
-                            "Insufficient information.",
-
-                        B: null,
-
-                        BReason:
-                            "Insufficient information.",
-
-                        identityStatus:
-                            null,
-
-                        identityReason:
-                            "Insufficient information.",
-
-                        causalEvidence: [],
-
-                        boundaryStatus:
-                            "DEFINED"
                     }
                 });
             }
