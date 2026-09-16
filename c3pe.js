@@ -228,19 +228,15 @@ function countSubjectiveAddresses(addresses, targetVesselId) {
 /*
  * Article III identity evaluation.
  *
- * The engine does NOT derive identity from information similarity.
- *
  * Article II determines whether consciousness is established.
- * Article III determines the individuality and continuity of the
- * subjective address.
+ * Article III determines the individuality and continuity of
+ * subjective addresses.
  *
- * If Article II establishes consciousness for the evaluated target
- * and no explicit address list is supplied, the evaluated target
- * itself represents one active subjective instance for counting
- * purposes. This does NOT create or transfer an address between
- * Vessels; it only prevents an unspecified address list from
- * incorrectly converting an established consciousness into
- * "0 active addresses".
+ * If no explicit subjective-address information is supplied,
+ * Article III remains unspecified.
+ *
+ * The absence of an explicit address object MUST NOT cause an
+ * established Article II consciousness to become zero addresses.
  *
  * Multiple independently instantiated addresses remain explicitly
  * representable through subjectiveAddresses and produce
@@ -273,45 +269,28 @@ function evaluateSubjectiveIdentity(data) {
 
 
     /*
-     * When Article II establishes consciousness but no explicit
-     * subjective-address objects are supplied, treat the evaluated
-     * target as one active subjective instance.
+     * Article III unspecified state.
      *
-     * This preserves the separation:
+     * Article II has already established consciousness, but
+     * no explicit subjective-address object was supplied.
      *
-     * Article II → consciousness establishment
-     * Article III → subjective individuality / continuity
+     * Do NOT force CONTINUOUS or NEW_INSTANCE.
      *
-     * It also prevents:
-     *
-     * C1=1 + C2=1 + Macro=1
-     * → Address Count=0
-     * → Identity=NULL
-     *
-     * from occurring merely because the address list was omitted.
+     * The consciousness count remains 1 for the evaluated
+     * conscious target, while Article III identity information
+     * itself remains unspecified.
      */
     if (
         macroPhenomenon === 1 &&
         activeCount === 0 &&
         subjectiveAddresses.length === 0
     ) {
-        if (
-            identityStatus !== SUBJECTIVE_IDENTITY.CONTINUOUS &&
-            identityStatus !== SUBJECTIVE_IDENTITY.NEW_INSTANCE
-        ) {
-            throw new TypeError(
-                "For an established consciousness without an explicit " +
-                "subjective address list, identityStatus must be " +
-                "CONTINUOUS or NEW_INSTANCE."
-            );
-        }
-
         return {
             status: identityStatus,
             activeAddressCount: 1,
             activeAddresses: [],
             reason: identityReason ||
-                "One active subjective instance is established for the evaluated target by Article II; no explicit address object was supplied."
+                "Article III subjective-address information is unspecified for the established consciousness."
         };
     }
 
@@ -320,8 +299,7 @@ function evaluateSubjectiveIdentity(data) {
      * NULL:
      * No active subjective address exists in the target Vessel.
      *
-     * This remains valid when Article II does not establish
-     * consciousness or when an explicit address set contains
+     * This remains valid when an explicit address set contains
      * no active address.
      */
     if (activeCount === 0) {
