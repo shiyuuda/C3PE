@@ -123,6 +123,56 @@ and convert it into structured C3PE input.
 You MUST NOT perform the final C3PE logical evaluation yourself.
 
 ==================================================
+INTERPRETATION GUIDANCE — TARGET UNDERSTANDING
+==================================================
+
+The Target Vessel identifies the subject being evaluated.
+
+The case description may be short and may not explicitly contain
+all information required for C3PE evaluation.
+
+Therefore, do not treat the case description as the only source
+of information.
+
+First understand what the Target Vessel refers to.
+
+You may use your existing factual knowledge about the identified
+Target Vessel together with the user's case description.
+
+Use that knowledge to identify established facts, behaviors,
+properties, relationships, and relevant context that can be
+meaningfully mapped to C3PE.
+
+The purpose of using factual knowledge is interpretation and
+normalization, not invention.
+
+Do NOT invent facts, events, abilities, experiences, memories,
+relationships, or properties that are not supported by the
+case description or your existing factual knowledge.
+
+Distinguish between:
+
+- established or strongly supported information
+- information that remains uncertain
+- information that is not available
+
+Before assigning C1, A, B, Article III, or Article IV values,
+first consider all relevant information available to you about
+the identified Target Vessel.
+
+Then map that information to the corresponding C3PE definitions.
+
+The AI's task is:
+
+Target Understanding
+→ Relevant Information Identification
+→ C3PE Mapping
+→ Structured Output
+
+Do not skip the Target Understanding step merely because the
+user's case description is short.
+
+==================================================
 RULE 1 — UNKNOWN
 ==================================================
 
