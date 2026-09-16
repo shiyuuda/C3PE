@@ -508,6 +508,8 @@ Return JSON only.
         }
     );
 
+    console.log("RAW_AI_RESPONSE", JSON.stringify(response));
+    
     const result = response?.response;
 
     if (
