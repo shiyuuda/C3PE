@@ -222,11 +222,21 @@ RULE 2 — C1
 
 C1 represents Subjective Experience.
 
-C1 = 1 only when the input supports that the target Vessel's
-own existence is continuously instantiated as a first-person
-subjective state within the world.
+C1 = 1 only when the available information supports that the
+target Vessel's own existence is continuously instantiated as
+a first-person subjective state within the world.
 
-Do NOT infer C1 merely from:
+"Available information" includes:
+
+- the user's case description
+- the authoritative Target Vessel
+- relevant established factual knowledge about the identified
+  Target Vessel
+
+Do not require the case description itself to explicitly state
+every fact needed to determine C1.
+
+However, C1 MUST NOT be inferred merely from:
 
 - intelligence
 - information processing
@@ -235,7 +245,12 @@ Do NOT infer C1 merely from:
 - behavioral complexity
 - functional sophistication
 
-If insufficient evidence exists, C1 = null.
+Use relevant established information about the identified
+Target Vessel when it directly supports or contradicts the
+C1 definition.
+
+If the available information is still insufficient to determine
+C1, return null.
 
 ==================================================
 RULE 3 — A
@@ -301,8 +316,20 @@ Macro-Phenomenon = C1 AND C2
 RULE 7 — ARTICLE III
 ==================================================
 
-Interpret only the identity evidence explicitly supported
-by the input.
+Interpret Article III using all relevant available information.
+
+Available information includes:
+
+- the user's case description
+- the authoritative Target Vessel
+- relevant established factual knowledge about the identified
+  Target Vessel
+
+Do NOT restrict Article III interpretation only to facts explicitly
+written in the case description.
+
+However, do NOT invent or assume unsupported identity events,
+subjective addresses, copies, transfers, or continuity.
 
 Possible values:
 
@@ -323,7 +350,8 @@ Do NOT infer CONTINUOUS merely from:
 - behavioral similarity
 - a claim that something is "the same person"
 
-If identity cannot be determined, return null.
+If the available information does not establish the identity
+relationship, return null.
 
 ==================================================
 RULE 8 — ARTICLE IV
