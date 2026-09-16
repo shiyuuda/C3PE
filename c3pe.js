@@ -229,8 +229,22 @@ function countSubjectiveAddresses(addresses, targetVesselId) {
  * Article III identity evaluation.
  *
  * The engine does NOT derive identity from information similarity.
- * The identity state must be supplied as a logical result of
- * Vessel-bound address evaluation.
+ *
+ * Article II determines whether consciousness is established.
+ * Article III determines the individuality and continuity of the
+ * subjective address.
+ *
+ * If Article II establishes consciousness for the evaluated target
+ * and no explicit address list is supplied, the evaluated target
+ * itself represents one active subjective instance for counting
+ * purposes. This does NOT create or transfer an address between
+ * Vessels; it only prevents an unspecified address list from
+ * incorrectly converting an established consciousness into
+ * "0 active addresses".
+ *
+ * Multiple independently instantiated addresses remain explicitly
+ * representable through subjectiveAddresses and produce
+ * MULTIPLEXED when two or more are active within one Vessel.
  */
 
 function evaluateSubjectiveIdentity(data) {
@@ -238,7 +252,8 @@ function evaluateSubjectiveIdentity(data) {
         subjectiveAddresses = [],
         targetVesselId,
         identityStatus = null,
-        identityReason = ""
+        identityReason = "",
+        macroPhenomenon = 0
     } = data;
 
     if (!targetVesselId) {
@@ -256,9 +271,58 @@ function evaluateSubjectiveIdentity(data) {
 
     const activeCount = activeAddresses.length;
 
+
+    /*
+     * When Article II establishes consciousness but no explicit
+     * subjective-address objects are supplied, treat the evaluated
+     * target as one active subjective instance.
+     *
+     * This preserves the separation:
+     *
+     * Article II → consciousness establishment
+     * Article III → subjective individuality / continuity
+     *
+     * It also prevents:
+     *
+     * C1=1 + C2=1 + Macro=1
+     * → Address Count=0
+     * → Identity=NULL
+     *
+     * from occurring merely because the address list was omitted.
+     */
+    if (
+        macroPhenomenon === 1 &&
+        activeCount === 0 &&
+        subjectiveAddresses.length === 0
+    ) {
+        if (
+            identityStatus !== SUBJECTIVE_IDENTITY.CONTINUOUS &&
+            identityStatus !== SUBJECTIVE_IDENTITY.NEW_INSTANCE
+        ) {
+            throw new TypeError(
+                "For an established consciousness without an explicit " +
+                "subjective address list, identityStatus must be " +
+                "CONTINUOUS or NEW_INSTANCE."
+            );
+        }
+
+        return {
+            status: identityStatus,
+            activeAddressCount: 1,
+            activeAddresses: [],
+            reason: identityReason ||
+                "One active subjective instance is established for the evaluated target by Article II; no explicit address object was supplied."
+        };
+    }
+
+
     /*
      * NULL:
      * No active subjective address exists in the target Vessel.
+     *
+     * This remains valid when Article II does not establish
+     * consciousness or when an explicit address set contains
+     * no active address.
      */
     if (activeCount === 0) {
         return {
@@ -269,6 +333,7 @@ function evaluateSubjectiveIdentity(data) {
                 "No active subjective address exists within the target Vessel."
         };
     }
+
 
     /*
      * MULTIPLEXED:
@@ -285,8 +350,9 @@ function evaluateSubjectiveIdentity(data) {
         };
     }
 
+
     /*
-     * Exactly one active address remains.
+     * Exactly one explicit active address remains.
      *
      * The engine does NOT infer CONTINUOUS or NEW_INSTANCE from
      * memory, personality, information, or physical similarity.
@@ -559,7 +625,8 @@ function evaluateC3PE(caseData) {
             identityStatus:
                 caseData.identityStatus || null,
             identityReason:
-                caseData.identityReason || ""
+                caseData.identityReason || "",
+            macroPhenomenon
         });
 
 
