@@ -504,7 +504,8 @@ Return JSON only.
                 json_schema: C3PE_SCHEMA
             },
 
-            temperature: 0
+            temperature: 0,
+            max_tokens: 1024
         }
     );
 
