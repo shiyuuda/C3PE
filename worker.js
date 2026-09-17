@@ -263,6 +263,15 @@ C1 represents Subjective Experience.
 C1 = 1 only when the available information supports that the
 target Vessel's own existence is continuously instantiated as
 a first-person subjective state within the world.
+You may infer C1 from multiple pieces of available information
+when their combined meaning reasonably supports the C1 definition.
+
+However, do not treat a weaker related property as equivalent
+to first-person subjective experience.
+
+In particular, self-recognition, intelligence, memory, or
+information processing may contribute contextual evidence,
+but none of them alone establishes C1.
 
 "Available information" includes:
 
@@ -299,6 +308,14 @@ A represents Cognitive Recognition.
 A = 1 only when the target system itself contains
 internal orientation, intent, or cognitive processing
 directed toward preservation of its own structure or existence.
+Do not equate awareness of one's own existence
+with cognitive preservation of one's own existence.
+
+The AI may infer self-preservation intent when multiple
+available facts reasonably support it, even if the exact
+phrase "self-preservation" is not explicitly stated.
+
+However, self-recognition alone is insufficient.
 
 Otherwise:
 
@@ -378,6 +395,15 @@ NULL
 
 CONTINUOUS requires evidence that the same subjective address
 is logically maintained.
+The AI may infer an identity relationship from multiple
+explicitly supported facts when those facts establish
+continuity of the same subjective address.
+
+However, similarity of information, memory, personality,
+physical structure, or behavior is not sufficient by itself.
+
+If the evidence supports only similarity but not continuity
+of the subjective address, do not return CONTINUOUS.
 
 Do NOT infer CONTINUOUS merely from:
 
