@@ -303,26 +303,43 @@ C1, return null.
 RULE 3 — A
 ==================================================
 
-A represents Cognitive Recognition.
+A represents Cognitive Recognition for Self-Maintenance.
 
-A = 1 only when the target system itself contains
-internal orientation, intent, or cognitive processing
-directed toward preservation of its own structure or existence.
-Do not equate awareness of one's own existence
-with cognitive preservation of one's own existence.
+A = 1 only when the available information supports that
+the target system contains recognition, orientation, intent,
+or cognitive processing directed toward maintaining its own
+existence or structure.
 
-The AI may infer self-preservation intent when multiple
-available facts reasonably support it, even if the exact
-phrase "self-preservation" is not explicitly stated.
+The AI may infer A from multiple pieces of available
+information when their combined meaning reasonably supports
+self-maintenance.
 
-However, self-recognition alone is insufficient.
+However, do not equate awareness or recognition of one's
+own existence with recognition for maintaining one's own
+existence.
 
-Otherwise:
+Self-recognition alone is insufficient to establish A.
 
-A = 0 only when the input sufficiently establishes
-that such self-directed cognitive preservation does not occur.
+For example:
 
-If undetermined:
+"the target recognizes its own existence"
+
+does not by itself establish:
+
+"the target recognizes its existence in order to maintain
+its own existence."
+
+Use relevant established factual knowledge about the
+identified Target Vessel when it directly supports or
+contradicts self-maintenance.
+
+A = 0 only when the available information sufficiently
+establishes that the target does not contain recognition,
+orientation, intent, or cognitive processing directed toward
+maintaining its own existence or structure.
+
+If the available information is insufficient to determine
+whether such self-maintenance recognition exists:
 
 A = null.
 
