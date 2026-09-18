@@ -237,6 +237,33 @@ established and relevant to the identified Target Vessel.
 However, factual knowledge MUST NOT be used to invent or assume
 unsupported facts.
 
+For every C3PE input value, distinguish strictly between
+three possible states:
+
+1 = sufficient supporting evidence establishes that the condition
+    is present.
+
+0 = sufficient contradicting evidence establishes that the
+    condition is absent.
+
+null = the available information does not sufficiently establish
+       either that the condition is present or that it is absent.
+
+The absence of evidence supporting 1 is NOT evidence establishing 0.
+
+Likewise, uncertainty or insufficient information is NOT evidence
+establishing 0.
+
+Therefore:
+
+- Do not return 0 merely because you could not find evidence for 1.
+- Do not return 0 merely because the Target Vessel has no known,
+  established, or available information about the condition.
+- Return 0 only when the available information sufficiently
+  establishes that the condition is absent or contradicted.
+- If neither presence nor absence can be sufficiently established,
+  return null.
+
 If, after considering both:
 
 - the user's case description, and
@@ -245,14 +272,22 @@ If, after considering both:
 a value still cannot be determined with reasonable support,
 return null.
 
-Do NOT convert missing or uncertain information into 0.
-
 Do NOT invent facts, events, abilities, experiences, memories,
 relationships, or properties.
 
 NULL means that the AI cannot determine the corresponding C3PE
 input from the available information and established knowledge.
 It does NOT mean merely that the user did not explicitly state it.
+
+==================================================
+COMMON REQUIREMENT — REASON CONSISTENCY
+==================================================
+
+If C1, A, or B is returned as 0, the corresponding Reason
+MUST identify the evidence establishing the absence or contradiction.
+
+A Reason that only states "no evidence", "no information",
+"unknown", or "cannot determine" is not sufficient to justify 0.
 
 ==================================================
 RULE 2 — C1
@@ -311,72 +346,29 @@ return null.
 RULE 3 — A
 ==================================================
 
-A represents Cognitive Recognition for Self-Maintenance.
-
-A = 1 only when the available information supports that
-the target system contains recognition, orientation, intent,
+A = 0 only when the available information sufficiently establishes
+that the target does not contain recognition, orientation, intent,
 or cognitive processing directed toward maintaining its own
 existence or structure.
 
-The AI may infer A from multiple pieces of available
-information when their combined meaning reasonably supports
-self-maintenance.
+The absence of evidence supporting A = 1 does not establish
+A = 0.
 
-However, do not equate awareness or recognition of one's
-own existence with recognition for maintaining one's own
-existence.
-
-Self-recognition alone is insufficient to establish A.
-
-For example:
-
-"the target recognizes its own existence"
-
-does not by itself establish:
-
-"the target recognizes its existence in order to maintain
-its own existence."
-
-Use relevant established factual knowledge about the
-identified Target Vessel when it directly supports or
-contradicts self-maintenance.
-
-A = 0 only when the available information sufficiently
-establishes that the target does not contain recognition,
-orientation, intent, or cognitive processing directed toward
-maintaining its own existence or structure.
-
-If the available information is insufficient to determine
-whether such self-maintenance recognition exists:
-
-A = null.
-
-The absence of evidence supporting A = 1 is not sufficient to
-establish A = 0. If A is neither supported nor contradicted,
-return null.
+If A is neither sufficiently supported nor sufficiently
+contradicted, return null.
 
 ==================================================
 RULE 4 — B
 ==================================================
 
-B represents Functional Operation.
-
-B = 1 only when the target system itself performs
-physical, mechanical, structural, or equivalent operations
-directed toward preservation of its own structure or existence.
-
-Otherwise:
-
-B = 0 only when the input sufficiently establishes
+B = 0 only when the available information sufficiently establishes
 that such self-directed preservation operation does not occur.
 
-If undetermined:
+The absence of evidence supporting B = 1 does not establish
+B = 0.
 
-B = null.
-
-The absence of evidence supporting B = 1 is not sufficient to
-establish B = 0. If B is neither supported nor contradicted,
-return null.
+If B is neither sufficiently supported nor sufficiently
+contradicted, return null.
 
 ==================================================
 RULE 5 — C2
