@@ -675,7 +675,64 @@ function validateAIResult(result) {
             );
         }
     }
+    // ========================================================
+    // REASON CONSISTENCY NORMALIZATION
+    // ========================================================
+    //
+    // If C1/A/B is returned as 0 but the corresponding Reason
+    // only indicates insufficient information, normalize the
+    // value to null instead of producing an error.
+    //
+    // Valid 0 results with concrete contradictory evidence
+    // remain unchanged.
+    // ========================================================
 
+    const reasonConsistencyTargets = [
+        ["C1", "C1Reason"],
+        ["A", "AReason"],
+        ["B", "BReason"]
+    ];
+
+    for (
+        const [valueKey, reasonKey]
+        of reasonConsistencyTargets
+    ) {
+
+        if (
+            result[valueKey] !== 0
+        ) {
+            continue;
+        }
+
+        const reason =
+            result[reasonKey]
+                .trim()
+                .toLowerCase();
+
+        const insufficientReasonPatterns = [
+            "no evidence",
+            "no information",
+            "unknown",
+            "cannot determine",
+            "unable to determine",
+            "insufficient information",
+            "insufficient evidence"
+        ];
+
+        const isInsufficientReason =
+            insufficientReasonPatterns.some(
+                pattern =>
+                    reason === pattern ||
+                    reason.startsWith(pattern + ".") ||
+                    reason.startsWith(pattern + " ")
+            );
+
+        if (
+            isInsufficientReason
+        ) {
+            result[valueKey] = null;
+        }
+    }
     if (
         !Array.isArray(
             result.causalEvidence
