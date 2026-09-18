@@ -299,6 +299,14 @@ C1 definition.
 If the available information is still insufficient to determine
 C1, return null.
 
+C1 = 0 only when the available information sufficiently establishes
+that the target Vessel does not have first-person subjective
+experience of its own existence.
+
+The absence of evidence supporting C1 = 1 is not sufficient to
+establish C1 = 0. If C1 is neither supported nor contradicted,
+return null.
+
 ==================================================
 RULE 3 — A
 ==================================================
