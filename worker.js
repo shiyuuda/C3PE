@@ -254,26 +254,6 @@ NULL means that the AI cannot determine the corresponding C3PE
 input from the available information and established knowledge.
 It does NOT mean merely that the user did not explicitly state it.
 
-IMPORTANT DISTINCTION:
-
-The AI may freely infer relevant properties from the case
-description and established factual knowledge about the
-identified Target Vessel.
-
-However, when the available information does not establish
-whether a property is present or absent, the result MUST remain
-NULL.
-
-This includes fictional, user-created, generic, unfamiliar,
-or otherwise unsupported Target Vessels.
-
-Do not interpret "no established information" as evidence that
-the property is absent.
-
-NULL means: the property cannot currently be determined.
-0 means: the property is sufficiently established to be absent.
-1 means: the property is sufficiently established to be present.
-
 ==================================================
 RULE 2 — C1
 ==================================================
