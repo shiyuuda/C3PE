@@ -351,6 +351,10 @@ whether such self-maintenance recognition exists:
 
 A = null.
 
+The absence of evidence supporting A = 1 is not sufficient to
+establish A = 0. If A is neither supported nor contradicted,
+return null.
+
 ==================================================
 RULE 4 — B
 ==================================================
@@ -369,6 +373,10 @@ that such self-directed preservation operation does not occur.
 If undetermined:
 
 B = null.
+
+The absence of evidence supporting B = 1 is not sufficient to
+establish B = 0. If B is neither supported nor contradicted,
+return null.
 
 ==================================================
 RULE 5 — C2
