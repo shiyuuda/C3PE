@@ -500,6 +500,87 @@ Return JSON only.
 The final C3PE logical result MUST be calculated outside the AI.
 `;
 
+// ============================================================
+// GROK WEB SEARCH
+// ============================================================
+
+const WEB_SEARCH_MODEL =
+    "xai/grok-4.20-multi-agent-0309";
+
+
+async function searchWithGrok(
+    targetVessel,
+    text,
+    env
+) {
+
+    const searchPrompt = `
+C3PE v3.6.2 evaluation support.
+
+Target Vessel:
+${targetVessel}
+
+User Case Description:
+${text || "No additional case description was provided."}
+
+Search the web for reliable, relevant, and established information
+about the Target Vessel and the described case.
+
+Focus only on information that may help determine:
+
+- first-person subjective experience
+- self-maintenance
+- cognitive recognition or processing directed toward self-maintenance
+- functional preservation operations
+- identity continuity
+- copies or instances
+- subjective identity
+- temporal relations
+- causal relations
+- worldlines
+- time travel
+- other facts directly relevant to C3PE Articles I-IV
+
+Do not make the final C3PE judgment.
+
+Return the useful factual evidence found on the web.
+Distinguish established information from uncertain or conflicting claims.
+Do not invent information.
+`;
+
+
+    const response =
+        await env.AI.run(
+            WEB_SEARCH_MODEL,
+            {
+                input:
+                    searchPrompt,
+
+                max_turns: 4,
+
+                tools: [
+                    {
+                        type:
+                            "web_search"
+                    }
+                ]
+            },
+            {
+                gateway: {
+                    id: "default"
+                }
+            }
+        );
+
+
+    console.log(
+        "RAW_GROK_WEB_SEARCH_RESPONSE",
+        JSON.stringify(response)
+    );
+
+
+    return response;
+}
 
 // ============================================================
 // AI INTERPRETATION
@@ -508,6 +589,7 @@ The final C3PE logical result MUST be calculated outside the AI.
 async function interpretWithAI(
     targetVessel,
     text,
+    webEvidence,
     env
 ) {
 
@@ -532,10 +614,34 @@ ${text || "No additional case description was provided."}
 
 ==================================================
 
+WEB SEARCH EVIDENCE:
+
+The following information was retrieved by a separate
+web-search stage.
+
+Use it as additional factual evidence.
+
+Do NOT treat the web-search model's conclusions as authoritative
+C3PE judgments.
+
+Evaluate the evidence yourself according to C3PE v3.6.2.
+
+Do NOT blindly trust unsupported claims.
+
+Distinguish established information from uncertain or conflicting
+information.
+
+WEB SEARCH RESULT:
+
+${JSON.stringify(webEvidence)}
+
+==================================================
+
 Analyze the case according to C3PE v3.6.2.
+
 Return JSON only.
 `;
-
+    
     const response = await env.AI.run(
         MODEL,
         {
@@ -884,8 +990,18 @@ export default {
                     }
                 });
             }
+            
+// =================================================
+// GROK WEB SEARCH
+// =================================================
 
-
+const webEvidence =
+    await searchWithGrok(
+        targetVessel,
+        text,
+        env
+    );
+            
             // =================================================
             // CLOUDFARE WORKERS AI
             // =================================================
