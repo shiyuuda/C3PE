@@ -991,77 +991,104 @@ export default {
                 });
             }
             
-// =================================================
-// GROK WEB SEARCH
-// =================================================
-
-const webEvidence =
-    await searchWithGrok(
-        targetVessel,
-        text,
-        env
-    );
-            
             // =================================================
-            // CLOUDFARE WORKERS AI
+            // GROK WEB SEARCH
             // =================================================
 
             try {
 
-                const interpretation =
-                    await interpretWithAI(
+                const webEvidence =
+                    await searchWithGrok(
                         targetVessel,
                         text,
                         env
                     );
 
+                // =================================================
+                // CLOUDFARE WORKERS AI
+                // =================================================
 
-                validateAIResult(
-                    interpretation
-                );
+                try {
+
+                    const interpretation =
+                        await interpretWithAI(
+                            targetVessel,
+                            text,
+                            webEvidence,
+                            env
+                        );
 
 
-                return Response.json({
+                        validateAIResult(
+                            interpretation
+                        );
 
-                    ok: true,
 
-                    source:
-                        "Cloudflare Workers AI",
+                        return Response.json({
 
-                    model:
-                        MODEL,
+                            ok: true,
 
-                    c3peVersion:
-                        "3.6.2",
+                            source:
+                                "Cloudflare Workers AI",
 
-                    interpretation
+                            model:
+                                MODEL,
 
-                });
+                            c3peVersion:
+                                "3.6.2",
 
-            } catch (error) {
+                            interpretation
 
-                return Response.json(
-                    {
-                        ok: false,
+                        });
 
-                        source:
-                            "Cloudflare Workers AI",
+                    } catch (error) {
 
-                        model:
-                            MODEL,
+                        return Response.json(
+                            {
+                                ok: false,
 
-                        c3peVersion:
-                            "3.6.2",
+                                source:
+                                    "Cloudflare Workers AI",
 
-                        error:
-                            error?.message ||
-                            "AI_TRANSLATION_ERROR"
-                    },
-                    {
-                        status: 500
+                                model:
+                                    MODEL,
+
+                                c3peVersion:
+                                    "3.6.2",
+
+                                error:
+                                    error?.message ||
+                                    "AI_TRANSLATION_ERROR"
+                            },
+                            {
+                                status: 500
+                            }
+                        );
                     }
-                );
-            }
+                } catch (error) {
+
+                    return Response.json(
+                        {
+                            ok: false,
+
+                            source:
+                                "Cloudflare Workers AI",
+
+                            model:
+                                MODEL,
+
+                            c3peVersion:
+                                "3.6.2",
+
+                            error:
+                                error?.message ||
+                                "AI_TRANSLATION_ERROR"
+                        },
+                        {
+                            status: 500
+                        }
+                    );
+                }
         }
 
 
