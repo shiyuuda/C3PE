@@ -548,6 +548,14 @@ The final C3PE logical result MUST be calculated outside the AI.
 // AI INTERPRETATION
 // ============================================================
 
+async function interpretWithAI(
+    targetVessel,
+    text,
+    entities,
+    caseText,
+    env
+) {
+
 const userPrompt = `
 AUTHORITATIVE TARGET VESSEL:
 
