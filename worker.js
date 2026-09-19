@@ -452,6 +452,49 @@ by the input.
 Do NOT independently declare the entire Causal Compossibility
 result unless the normalized causal model is sufficient.
 
+// ==================================================
+// MULTIPLE ENTITY INTERPRETATION
+// ==================================================
+
+When multiple entities are provided by the user,
+treat each entity as an independent Vessel.
+
+Each entity has its own subjective address unless
+the case explicitly establishes a structural relationship.
+
+Do NOT merge entities merely because they have:
+
+- the same name
+- the same type
+- identical memories
+- identical personality
+- identical data
+- identical physical structure
+- similar behavior
+
+Article III must evaluate the relationship between
+the subjective addresses of the relevant Vessels.
+
+The case description may establish relationships such as:
+
+- continuity
+- copying
+- duplication
+- branching
+- splitting
+- simultaneous existence
+- termination
+- transfer
+- causal relationships
+- temporal relationships
+
+Do not assume such relationships unless they are supported
+by the supplied case or established factual knowledge.
+
+If the relationship between entities cannot be sufficiently
+established, return NULL for the corresponding Article III
+judgment.
+
 ==================================================
 RULE 9 — TARGET VESSEL
 ==================================================
@@ -505,13 +548,7 @@ The final C3PE logical result MUST be calculated outside the AI.
 // AI INTERPRETATION
 // ============================================================
 
-async function interpretWithAI(
-    targetVessel,
-    text,
-    env
-) {
-
-    const userPrompt = `
+const userPrompt = `
 AUTHORITATIVE TARGET VESSEL:
 
 ${targetVessel}
@@ -522,13 +559,36 @@ Treat it as authoritative.
 
 Return the Target Vessel exactly as provided.
 
-DO NOT infer another target from the case description.
+DO NOT replace or reinterpret the Target Vessel.
 
 ==================================================
+ENTITIES
+==================================================
 
-USER CASE DESCRIPTION:
+${JSON.stringify(
+    entities || [],
+    null,
+    2
+)}
+
+Each entity listed above is an independent Vessel
+unless the case explicitly establishes a different
+structural relationship.
+
+Do NOT merge entities merely because they have
+similar or identical properties.
+
+==================================================
+USER CASE DESCRIPTION
+==================================================
 
 ${text || "No additional case description was provided."}
+
+==================================================
+CASE
+==================================================
+
+${caseText || text || "No additional case description was provided."}
 
 ==================================================
 
@@ -842,6 +902,16 @@ export default {
                     ? body.text.trim()
                     : "";
 
+            const entities =
+    Array.isArray(body?.entities)
+        ? body.entities
+        : [];
+
+const caseText =
+    typeof body?.case ===
+    "string"
+        ? body.case.trim()
+        : "";
 
             // =================================================
             // TARGET VESSEL IS REQUIRED
@@ -899,6 +969,8 @@ export default {
                     await interpretWithAI(
                         targetVessel,
                         text,
+                        entities,
+                        caseText,
                         env
                     );
 
