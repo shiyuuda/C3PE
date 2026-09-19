@@ -500,87 +500,6 @@ Return JSON only.
 The final C3PE logical result MUST be calculated outside the AI.
 `;
 
-// ============================================================
-// GROK WEB SEARCH
-// ============================================================
-
-const WEB_SEARCH_MODEL =
-    "xai/grok-4.20-multi-agent-0309";
-
-
-async function searchWithGrok(
-    targetVessel,
-    text,
-    env
-) {
-
-    const searchPrompt = `
-C3PE v3.6.2 evaluation support.
-
-Target Vessel:
-${targetVessel}
-
-User Case Description:
-${text || "No additional case description was provided."}
-
-Search the web for reliable, relevant, and established information
-about the Target Vessel and the described case.
-
-Focus only on information that may help determine:
-
-- first-person subjective experience
-- self-maintenance
-- cognitive recognition or processing directed toward self-maintenance
-- functional preservation operations
-- identity continuity
-- copies or instances
-- subjective identity
-- temporal relations
-- causal relations
-- worldlines
-- time travel
-- other facts directly relevant to C3PE Articles I-IV
-
-Do not make the final C3PE judgment.
-
-Return the useful factual evidence found on the web.
-Distinguish established information from uncertain or conflicting claims.
-Do not invent information.
-`;
-
-
-    const response =
-        await env.AI.run(
-            WEB_SEARCH_MODEL,
-            {
-                input:
-                    searchPrompt,
-
-                max_turns: 4,
-
-                tools: [
-                    {
-                        type:
-                            "web_search"
-                    }
-                ]
-            },
-            {
-                gateway: {
-                    id: "default"
-                }
-            }
-        );
-
-
-    console.log(
-        "RAW_GROK_WEB_SEARCH_RESPONSE",
-        JSON.stringify(response)
-    );
-
-
-    return response;
-}
 
 // ============================================================
 // AI INTERPRETATION
@@ -589,7 +508,6 @@ Do not invent information.
 async function interpretWithAI(
     targetVessel,
     text,
-    webEvidence,
     env
 ) {
 
@@ -611,29 +529,6 @@ DO NOT infer another target from the case description.
 USER CASE DESCRIPTION:
 
 ${text || "No additional case description was provided."}
-
-==================================================
-
-WEB SEARCH EVIDENCE:
-
-The following information was retrieved by a separate
-web-search stage.
-
-Use it as additional factual evidence.
-
-Do NOT treat the web-search model's conclusions as authoritative
-C3PE judgments.
-
-Evaluate the evidence yourself according to C3PE v3.6.2.
-
-Do NOT blindly trust unsupported claims.
-
-Distinguish established information from uncertain or conflicting
-information.
-
-WEB SEARCH RESULT:
-
-${JSON.stringify(webEvidence)}
 
 ==================================================
 
@@ -781,6 +676,7 @@ function validateAIResult(result) {
             );
         }
     }
+
     // ========================================================
     // REASON CONSISTENCY NORMALIZATION
     // ========================================================
@@ -839,6 +735,7 @@ function validateAIResult(result) {
             result[valueKey] = null;
         }
     }
+
     if (
         !Array.isArray(
             result.causalEvidence
@@ -990,105 +887,68 @@ export default {
                     }
                 });
             }
-            
+
+
             // =================================================
-            // GROK WEB SEARCH
+            // CLOUDFARE WORKERS AI
             // =================================================
 
             try {
 
-                const webEvidence =
-                    await searchWithGrok(
+                const interpretation =
+                    await interpretWithAI(
                         targetVessel,
                         text,
                         env
                     );
 
-                // =================================================
-                // CLOUDFARE WORKERS AI
-                // =================================================
 
-                try {
-
-                    const interpretation =
-                        await interpretWithAI(
-                            targetVessel,
-                            text,
-                            webEvidence,
-                            env
-                        );
+                validateAIResult(
+                    interpretation
+                );
 
 
-                        validateAIResult(
-                            interpretation
-                        );
+                return Response.json({
 
+                    ok: true,
 
-                        return Response.json({
+                    source:
+                        "Cloudflare Workers AI",
 
-                            ok: true,
+                    model:
+                        MODEL,
 
-                            source:
-                                "Cloudflare Workers AI",
+                    c3peVersion:
+                        "3.6.2",
 
-                            model:
-                                MODEL,
+                    interpretation
 
-                            c3peVersion:
-                                "3.6.2",
+                });
 
-                            interpretation
+            } catch (error) {
 
-                        });
+                return Response.json(
+                    {
+                        ok: false,
 
-                    } catch (error) {
+                        source:
+                            "Cloudflare Workers AI",
 
-                        return Response.json(
-                            {
-                                ok: false,
+                        model:
+                            MODEL,
 
-                                source:
-                                    "Cloudflare Workers AI",
+                        c3peVersion:
+                            "3.6.2",
 
-                                model:
-                                    MODEL,
-
-                                c3peVersion:
-                                    "3.6.2",
-
-                                error:
-                                    error?.message ||
-                                    "AI_TRANSLATION_ERROR"
-                            },
-                            {
-                                status: 500
-                            }
-                        );
+                        error:
+                            error?.message ||
+                            "AI_TRANSLATION_ERROR"
+                    },
+                    {
+                        status: 500
                     }
-                } catch (error) {
-
-                    return Response.json(
-                        {
-                            ok: false,
-
-                            source:
-                                "Cloudflare Workers AI",
-
-                            model:
-                                MODEL,
-
-                            c3peVersion:
-                                "3.6.2",
-
-                            error:
-                                error?.message ||
-                                "AI_TRANSLATION_ERROR"
-                        },
-                        {
-                            status: 500
-                        }
-                    );
-                }
+                );
+            }
         }
 
 
