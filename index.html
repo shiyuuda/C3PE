@@ -147,6 +147,10 @@ footer {
 
     <h2>［INPUT］</h2>
 
+    <p style="color:#69d7ff;">
+        MODE: CASE ADDITION
+    </p>
+
     <p>
         評価対象となる存在と、その状況を入力してください。
     </p>
@@ -158,27 +162,57 @@ footer {
     </p>
 
 
-    <label for="targetVessel">
-        Target Vessel / 存在
-    </label>
+    <div id="entitiesContainer">
 
-    <input
-        type="text"
-        id="targetVessel"
-        placeholder="例：ドラえもん"
-        autocomplete="off"
+        <div class="entity-block">
+
+            <h3>存在A</h3>
+
+            <label>名称</label>
+
+            <input
+                type="text"
+                class="entity-name"
+                placeholder="例：人間"
+                autocomplete="off"
+            >
+
+            <label>詳細</label>
+
+            <textarea
+                class="entity-details"
+                placeholder="例：
+自分自身の存在を第一人称の主観として経験している。"
+            ></textarea>
+
+        </div>
+
+    </div>
+
+
+    <button
+        type="button"
+        id="addEntityButton"
     >
+        ＋ 存在を追加
+    </button>
 
 
-    <label for="input">
-        詳細
+    <p style="color:#8be5ff; font-size:13px; line-height:1.6;">
+        対象存在には、できるだけ一般的な名称を使用してください。<br>
+        例：「人間」「猫」「ロボット」「AI」「動物」「機械」など。<br>
+        固有名詞やキャラクター名は、原則として詳細欄に記入してください。<br>
+        ※この名称自体はC3PEの判定基準ではありません。
+    </p>
+
+
+    <label for="caseInput">
+        ケース
     </label>
 
     <textarea
-        id="input"
-        placeholder="例：
-自分自身の存在を第一人称の主観として経験している。
-自身の存在を維持するための行動を行っている。"
+        id="caseInput"
+        placeholder="このケースで何が起きるのかを自由に記入してください。"
     ></textarea>
 
 
@@ -431,7 +465,9 @@ function buildC3PEInput(interpretation) {
 
 async function requestAIProfile(
     targetVessel,
-    input
+    input,
+    entities,
+    caseText
 ) {
 
     const response = await fetch(
@@ -445,7 +481,9 @@ async function requestAIProfile(
 
             body: JSON.stringify({
                 targetVessel: targetVessel,
-                text: input
+                text: input,
+                entities: entities,
+                case: caseText
             })
         }
     );
@@ -609,11 +647,11 @@ function validateAIInterpretation(
 
 async function evaluateCase() {
 
-    const targetVesselElement =
-        document.getElementById("targetVessel");
+    const entitiesContainer =
+        document.getElementById("entitiesContainer");
 
-    const inputElement =
-        document.getElementById("input");
+    const caseInputElement =
+        document.getElementById("caseInput");
 
     const outputElement =
         document.getElementById("output");
@@ -623,8 +661,8 @@ async function evaluateCase() {
 
 
     if (
-        !targetVesselElement ||
-        !inputElement ||
+        !entitiesContainer ||
+        !caseInputElement ||
         !outputElement
     ) {
 
@@ -633,28 +671,79 @@ async function evaluateCase() {
     }
 
 
-    const targetVessel =
-        targetVesselElement.value.trim();
+    const entityBlocks =
+        Array.from(
+            document.querySelectorAll(".entity-block")
+        );
 
-    const input =
-        inputElement.value.trim();
+    const entities =
+        entityBlocks.map(
+            (block) => {
+
+                const name =
+                    block
+                        .querySelector(".entity-name")
+                        .value
+                        .trim();
+
+                const details =
+                    block
+                        .querySelector(".entity-details")
+                        .value
+                        .trim();
+
+                return {
+                    name: name,
+                    details: details
+                };
+
+            }
+        );
+
+    const caseText =
+        caseInputElement.value.trim();
 
 
     /* ---------------------------------------------------------
        TARGET VESSEL VALIDATION
        --------------------------------------------------------- */
 
-    if (!targetVessel) {
+    if (
+        entities.length === 0 ||
+        entities.some(
+            entity => !entity.name
+        )
+    ) {
 
         setOutput(
             outputElement,
-            "[ERROR] TARGET_VESSEL_UNDEFINED",
+            "[ERROR] ENTITY_UNDEFINED",
             "error"
         );
 
         return;
 
     }
+
+
+    if (!caseText) {
+
+        setOutput(
+            outputElement,
+            "[ERROR] CASE_UNDEFINED",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const targetVessel =
+        entities[0].name;
+
+    const input =
+        entities[0].details;
 
 
     /* ---------------------------------------------------------
@@ -713,7 +802,9 @@ async function evaluateCase() {
         const data =
             await requestAIProfile(
                 targetVessel,
-                input
+                input,
+                entities,
+                caseText
             );
 
 
@@ -890,23 +981,166 @@ async function evaluateCase() {
    RUN BUTTON STATE
    ========================================================= */
 
-const targetVesselInput =
-    document.getElementById("targetVessel");
-
 const runButton =
     document.getElementById("runButton");
 
+const entitiesContainer =
+    document.getElementById("entitiesContainer");
 
-targetVesselInput
-    .addEventListener(
-        "input",
-        function () {
+const caseInput =
+    document.getElementById("caseInput");
 
-            runButton.disabled =
-                targetVesselInput.value.trim() === "";
+
+function updateRunButtonState() {
+
+    const entityBlocks =
+        Array.from(
+            document.querySelectorAll(".entity-block")
+        );
+
+    const hasInvalidEntity =
+        entityBlocks.some(
+            block =>
+                !block
+                    .querySelector(".entity-name")
+                    .value
+                    .trim()
+        );
+
+    const caseEmpty =
+        caseInput.value.trim() === "";
+
+    runButton.disabled =
+        hasInvalidEntity ||
+        caseEmpty;
+
+}
+
+
+function updateEntityLabels() {
+
+    const entityBlocks =
+        Array.from(
+            document.querySelectorAll(".entity-block")
+        );
+
+    entityBlocks.forEach(
+        (block, index) => {
+
+            const heading =
+                block.querySelector("h3");
+
+            heading.textContent =
+                "存在" +
+                String.fromCharCode(
+                    65 + index
+                );
 
         }
     );
+
+}
+
+
+document
+    .getElementById("addEntityButton")
+    .addEventListener(
+        "click",
+        function () {
+
+            const entityBlocks =
+                document.querySelectorAll(
+                    ".entity-block"
+                );
+
+            const index =
+                entityBlocks.length;
+
+            const block =
+                document.createElement("div");
+
+            block.className =
+                "entity-block";
+
+            block.innerHTML = `
+                <h3>存在${String.fromCharCode(65 + index)}</h3>
+
+                <label>名称</label>
+
+                <input
+                    type="text"
+                    class="entity-name"
+                    placeholder="例：人間"
+                    autocomplete="off"
+                >
+
+                <label>詳細</label>
+
+                <textarea
+                    class="entity-details"
+                    placeholder="この存在について必要な情報を記入してください。"
+                ></textarea>
+
+                <button
+                    type="button"
+                    class="remove-entity-button"
+                >
+                    − この存在を削除
+                </button>
+            `;
+
+            entitiesContainer.appendChild(block);
+
+            block
+                .querySelectorAll("input, textarea")
+                .forEach(
+                    element => {
+
+                        element.addEventListener(
+                            "input",
+                            updateRunButtonState
+                        );
+
+                    }
+                );
+
+            block
+                .querySelector(".remove-entity-button")
+                .addEventListener(
+                    "click",
+                    function () {
+
+                        block.remove();
+
+                        updateEntityLabels();
+                        updateRunButtonState();
+
+                    }
+                );
+
+            updateRunButtonState();
+
+        }
+    );
+
+
+document
+    .querySelectorAll(
+        "#entitiesContainer input, #entitiesContainer textarea, #caseInput"
+    )
+    .forEach(
+        element => {
+
+            element.addEventListener(
+                "input",
+                updateRunButtonState
+            );
+
+        }
+    );
+
+
+updateRunButtonState();
 
 
 /* =========================================================
