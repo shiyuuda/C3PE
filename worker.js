@@ -116,6 +116,7 @@ const C3PE_SCHEMA = {
         "BReason",
         "identityStatus",
         "identityReason",
+        "identityRelations", 
         "causalEvidence",
         "boundaryStatus"
     ],
