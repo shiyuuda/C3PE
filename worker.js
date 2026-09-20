@@ -77,20 +77,25 @@ const C3PE_SCHEMA = {
         identityReason: {
             type: "string"
         },
-        
+
         identityRelations: {
-  type: "array",
-  items: {
-    type: "object",
-    properties: {
-      from: { type: "string" },
-      to: { type: "string" },
-      relation: { type: "string" },
-      evidence: { type: "string" }
-    },
-    required: ["from", "to", "relation", "evidence"]
-  }
-},
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    from: { type: "string" },
+                    to: { type: "string" },
+                    relation: { type: "string" },
+                    evidence: { type: "string" }
+                },
+                required: [
+                    "from",
+                    "to",
+                    "relation",
+                    "evidence"
+                ]
+            }
+        },
 
         causalEvidence: {
             type: "array"
@@ -116,7 +121,7 @@ const C3PE_SCHEMA = {
         "BReason",
         "identityStatus",
         "identityReason",
-        "identityRelations", 
+        "identityRelations",
         "causalEvidence",
         "boundaryStatus"
     ],
@@ -311,8 +316,8 @@ RULE 2 — C1
 C1 represents Subjective Experience.
 
 C1 = 1 only when the available information supports that the
-target Vessel's own existence is continuously instantiated as
-a first-person subjective state within the world.
+target Vessel's own existence is continuously instantiated as a
+first-person subjective state within the world.
 You may infer C1 from multiple pieces of available information
 when their combined meaning reasonably supports the C1 definition.
 
@@ -457,6 +462,30 @@ Do NOT infer CONTINUOUS merely from:
 If the available information does not establish the identity
 relationship, return null.
 
+When multiple Vessels are present, also return the identity
+relationship between relevant Vessels in identityRelations.
+
+For each relevant relationship, specify:
+
+- from: the source Vessel
+- to: the related Vessel
+- relation: the identity relationship
+- evidence: the evidence supporting that relationship
+
+Do NOT use CONTINUOUS merely because two Vessels have
+identical memories, personality, data, physical structure,
+or other information.
+
+If one Vessel is copied into another distinct Vessel while
+the original continues to exist, the relationship between
+the original and the copy is NEW_INSTANCE unless the available
+information explicitly establishes preservation of the same
+subjective address.
+
+identityRelations describes relationships between Vessels.
+identityStatus describes the Article III status represented
+by those relationships.
+
 ==================================================
 RULE 8 — ARTICLE IV
 ==================================================
@@ -551,6 +580,7 @@ Return JSON only.
     "NULL" |
     null,
   "identityReason": "...",
+  "identityRelations": [],
   "causalEvidence": [],
   "boundaryStatus": "DEFINED" | "BOUNDARY_UNDEFINED"
 }
@@ -817,6 +847,16 @@ function validateAIResult(result) {
         ) {
             result[valueKey] = null;
         }
+    }
+
+    if (
+        !Array.isArray(
+            result.identityRelations
+        )
+    ) {
+        throw new Error(
+            "IDENTITY_RELATIONS_INVALID"
+        );
     }
 
     if (
