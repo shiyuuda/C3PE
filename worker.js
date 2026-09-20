@@ -77,6 +77,20 @@ const C3PE_SCHEMA = {
         identityReason: {
             type: "string"
         },
+        
+        identityRelations: {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      from: { type: "string" },
+      to: { type: "string" },
+      relation: { type: "string" },
+      evidence: { type: "string" }
+    },
+    required: ["from", "to", "relation", "evidence"]
+  }
+},
 
         causalEvidence: {
             type: "array"
