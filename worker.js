@@ -727,6 +727,21 @@ Analyze the case according to C3PE v3.6.2.
         const signature =
         stableResultSignature(result);
 
+        console.log(
+    "STABILITY_CHECK",
+    JSON.stringify({
+        attempt,
+        C1: result.C1,
+        A: result.A,
+        B: result.B,
+        identityStatus: result.identityStatus,
+        identityRelations: result.identityRelations,
+        causalEvidence: result.causalEvidence,
+        boundaryStatus: result.boundaryStatus,
+        signature
+    })
+);
+
     if (
         signature === previousSignature
     ) {
