@@ -18,6 +18,8 @@
 
 const MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 
+const REQUIRED_CONSECUTIVE_RESULTS = 3;
+const MAX_AI_ATTEMPTS = 15;
 
 // ============================================================
 // C3PE AI OUTPUT SCHEMA
@@ -588,6 +590,21 @@ Return JSON only.
 The final C3PE logical result MUST be calculated outside the AI.
 `;
 
+// ============================================================
+// AI STABILITY CHECK
+// ============================================================
+
+function stableResultSignature(result) {
+    return JSON.stringify({
+        C1: result.C1,
+        A: result.A,
+        B: result.B,
+        identityStatus: result.identityStatus,
+        identityRelations: result.identityRelations,
+        causalEvidence: result.causalEvidence,
+        boundaryStatus: result.boundaryStatus
+    });
+}
 
 // ============================================================
 // AI INTERPRETATION
@@ -647,10 +664,19 @@ ${caseText || text || "No additional case description was provided."}
 
 Analyze the case according to C3PE v3.6.2.
 
-Return JSON only.
+ Return JSON only.
 `;
-    
-    const response = await env.AI.run(
+
+    let previousSignature = null;
+    let consecutiveCount = 0;
+
+    for (
+        let attempt = 1;
+        attempt <= MAX_AI_ATTEMPTS;
+        attempt++
+    ) {
+
+        const response = await env.AI.run(
         MODEL,
         {
             messages: [
@@ -698,7 +724,28 @@ Return JSON only.
     result.targetVesselId = targetVessel;
     result.boundaryStatus = "DEFINED";
 
-    return result;
+        const signature =
+        stableResultSignature(result);
+
+    if (
+        signature === previousSignature
+    ) {
+        consecutiveCount++;
+    } else {
+        previousSignature = signature;
+        consecutiveCount = 1;
+    }
+
+    if (
+        consecutiveCount >=
+        REQUIRED_CONSECUTIVE_RESULTS
+    ) {
+        return result;
+    }
+}
+        throw new Error(
+        "AI_RESULT_UNSTABLE"
+    );
 }
 
 
