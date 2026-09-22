@@ -600,8 +600,17 @@ function stableResultSignature(result) {
         A: result.A,
         B: result.B,
         identityStatus: result.identityStatus,
-        identityRelations: result.identityRelations,
-        causalEvidence: result.causalEvidence,
+        identityRelations: (result.identityRelations || []).map(r => ({
+            from: r.from,
+            to: r.to,
+            relation: r.relation
+        })),
+        causalEvidence: (result.causalEvidence || []).map(r => ({
+            from: r.from,
+            to: r.to,
+            relation: r.relation,
+            relationType: r.relationType
+        })),
         boundaryStatus: result.boundaryStatus
     });
 }
