@@ -100,8 +100,22 @@ const C3PE_SCHEMA = {
         },
 
         causalEvidence: {
-            type: "array"
+    type: "array",
+    items: {
+        type: "object",
+        properties: {
+            condition: { type: "string" },
+            requiresExistence: { type: "boolean" },
+            requiresNonExistence: { type: "boolean" }
         },
+        required: [
+            "condition",
+            "requiresExistence",
+            "requiresNonExistence"
+        ],
+        additionalProperties: false
+    }
+},
 
         causalContradiction: {
             type: ["integer", "null"],
@@ -501,6 +515,14 @@ RULE 8 — ARTICLE IV
 Extract only the causal/temporal relations explicitly supported
 by the input.
 
+For each normalized condition, return one causalEvidence object.
+Use the same "condition" value when the same condition is subject
+to multiple existence requirements.
+
+Set requiresExistence = true when that condition is required to exist.
+Set requiresNonExistence = true when that same condition is required
+not to exist.
+
 Do NOT independently declare the entire Causal Compossibility
 result unless the normalized causal model is sufficient.
 
@@ -589,8 +611,15 @@ Return JSON only.
     null,
   "identityReason": "...",
   "identityRelations": [],
-  "causalEvidence": [],
-  "boundaryStatus": "DEFINED" | "BOUNDARY_UNDEFINED"
+"causalEvidence": [
+    {
+        "condition": "...",
+        "requiresExistence": true,
+        "requiresNonExistence": false
+    }
+],
+"causalContradiction": 0 | 1 | null,
+"boundaryStatus": "DEFINED" | "BOUNDARY_UNDEFINED"
 }
 
 The final C3PE logical result MUST be calculated outside the AI.
