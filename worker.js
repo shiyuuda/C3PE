@@ -103,6 +103,11 @@ const C3PE_SCHEMA = {
             type: "array"
         },
 
+        causalContradiction: {
+            type: ["integer", "null"],
+            enum: [0, 1, null]
+        },
+        
         boundaryStatus: {
             type: "string",
             enum: [
@@ -125,6 +130,7 @@ const C3PE_SCHEMA = {
         "identityReason",
         "identityRelations",
         "causalEvidence",
+        "causalContradiction",
         "boundaryStatus"
     ],
 
@@ -605,12 +611,7 @@ function stableResultSignature(result) {
             to: r.to,
             relation: r.relation
         })),
-        causalEvidence: (result.causalEvidence || []).map(r => ({
-            from: r.from,
-            to: r.to,
-            relation: r.relation,
-            relationType: r.relationType
-        })),
+    　  causalContradiction: result.causalContradiction,
         boundaryStatus: result.boundaryStatus
     });
 }
@@ -732,6 +733,15 @@ Analyze the case according to C3PE v3.6.2.
     result.targetVessel = targetVessel;
     result.targetVesselId = targetVessel;
     result.boundaryStatus = "DEFINED";
+
+    result.causalContradiction =
+    result.causalEvidence?.some(
+        r =>
+            r.requiresExistence === true &&
+            r.requiresNonExistence === true
+    )
+        ? 1
+        : 0;
 
         const signature =
         stableResultSignature(result);
