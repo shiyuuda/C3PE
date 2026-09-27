@@ -117,12 +117,9 @@ const C3PE_SCHEMA = {
     }
 },
 
-        causalContradiction: {
-            type: ["integer", "null"],
-            enum: [0, 1, null]
-        },
+       
         
-        boundaryStatus: {
+         boundaryStatus: {
             type: "string",
             enum: [
                 "DEFINED",
@@ -144,7 +141,6 @@ const C3PE_SCHEMA = {
         "identityReason",
         "identityRelations",
         "causalEvidence",
-        "causalContradiction",
         "boundaryStatus"
     ],
 
@@ -618,7 +614,6 @@ Return JSON only.
         "requiresNonExistence": false
     }
 ],
-"causalContradiction": 0 | 1 | null,
 "boundaryStatus": "DEFINED" | "BOUNDARY_UNDEFINED"
 }
 
