@@ -343,18 +343,37 @@ function buildAIInterpretationDisplay(interpretation) {
 
         "Article III\n" +
 
-        "Identity Status: " +
-        String(
-            interpretation.identityStatus ??
-            "UNDEFINED"
-        ) +
-        "\n" +
+"Identity Status: " +
+String(
+interpretation.identityStatus ??
+"UNDEFINED"
+) +
+"\n" +
 
-        "Reason: " +
-        String(
-            interpretation.identityReason ??
-            ""
-        )
+"Reason: " +
+String(
+interpretation.identityReason ??
+""
+) +
+"\n\n" +
+
+"Identity Relations:\n" +
+(
+Array.isArray(interpretation.identityRelations) &&
+interpretation.identityRelations.length > 0
+? interpretation.identityRelations
+.map(
+relation =>
+String(relation.from) +
+" → " +
+String(relation.to) +
+" : " +
+String(relation.relation)
+)
+.join("\n")
+: "NONE"
+)
+
     );
 
 }
@@ -436,6 +455,13 @@ function buildC3PEInput(interpretation) {
 
         identityReason:
             interpretation.identityReason || "",
+
+        identityRelations:
+            Array.isArray(
+                interpretation.identityRelations
+         )
+                ? interpretation.identityRelations
+                : [],
 
         /*
          * ARTICLE IV
