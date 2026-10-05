@@ -968,7 +968,7 @@ function validateAIResult(result) {
             "cannot determine",
             "unable to determine",
             "insufficient information",
-            "insufficient evidence"
+            "insufficient evidence",
             "does not sufficiently establish"
         ];
 
