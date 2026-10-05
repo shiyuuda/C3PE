@@ -969,7 +969,8 @@ function validateAIResult(result) {
             "unable to determine",
             "insufficient information",
             "insufficient evidence",
-            "does not sufficiently establish"
+            "does not sufficiently establish",
+            "does not establish"
         ];
 
         const isInsufficientReason =
