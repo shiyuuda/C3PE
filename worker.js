@@ -87,7 +87,15 @@ const C3PE_SCHEMA = {
                 properties: {
                     from: { type: "string" },
                     to: { type: "string" },
-                    relation: { type: "string" },
+                    relation: {
+                        type: "string",
+                        enum: [
+                            "CONTINUOUS",
+                            "NEW_INSTANCE",
+                            "MULTIPLEXED",
+                            "NULL"
+                        ]
+                    },
                     evidence: { type: "string" }
                 },
                 required: [
@@ -487,6 +495,22 @@ CONTINUOUS
 NEW_INSTANCE
 MULTIPLEXED
 NULL
+
+MULTIPLEXED requires evidence that two or more distinct
+subjective addresses are simultaneously instantiated within
+the same Target Vessel.
+
+The mere existence of multiple Vessels does NOT establish
+MULTIPLEXED.
+
+Two or more independent Vessels with separate subjective
+addresses must not be classified as MULTIPLEXED merely because
+they exist simultaneously.
+
+When multiple Vessels are present, distinguish between:
+
+- the Article III status of the Target Vessel
+- identity relationships between different Vessels
 
 CONTINUOUS requires evidence that the same subjective address
 is logically maintained.
