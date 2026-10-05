@@ -384,10 +384,25 @@ return null.
 RULE 3 — A
 ==================================================
 
+A represents recognition related to the target's own existence.
+
+A = 1 when the available information sufficiently establishes
+that the target recognizes its own existence or state as something
+that relates to itself.
+
+This does NOT require:
+
+- a desire to live
+- a desire to die
+- fear of death
+- an explicit intention to preserve itself
+- a self-preservation operation
+
+A is about recognition of the target's own existence or state
+as something that is relevant to itself.
+
 A = 0 only when the available information sufficiently establishes
-that the target does not contain recognition, orientation, intent,
-or cognitive processing directed toward maintaining its own
-existence or structure.
+that the target does not have such self-related recognition.
 
 The absence of evidence supporting A = 1 does not establish
 A = 0.
@@ -395,19 +410,36 @@ A = 0.
 If A is neither sufficiently supported nor sufficiently
 contradicted, return null.
 
+
 ==================================================
 RULE 4 — B
 ==================================================
 
+B represents a function that maintains the target's own existence
+or state.
+
+B = 1 when the available information sufficiently establishes
+that a function maintaining the target's own existence or state
+continues to operate.
+
+This does NOT require:
+
+- conscious recognition
+- intention
+- desire
+- deliberate action
+- explicit self-preservation behavior
+
+B may therefore be present even when A is not established.
+
 B = 0 only when the available information sufficiently establishes
-that such self-directed preservation operation does not occur.
+that such self-maintaining function does not operate.
 
 The absence of evidence supporting B = 1 does not establish
 B = 0.
 
 If B is neither sufficiently supported nor sufficiently
 contradicted, return null.
-
 ==================================================
 RULE 5 — C2
 ==================================================
