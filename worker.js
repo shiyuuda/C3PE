@@ -65,21 +65,6 @@ const C3PE_SCHEMA = {
             type: "string"
         },
 
-        identityStatus: {
-            type: ["string", "null"],
-            enum: [
-                "CONTINUOUS",
-                "NEW_INSTANCE",
-                "MULTIPLEXED",
-                "NULL",
-                null
-            ]
-        },
-
-        identityReason: {
-            type: "string"
-        },
-
         identityRelations: {
             type: "array",
             items: {
@@ -90,9 +75,16 @@ const C3PE_SCHEMA = {
                     relation: {
                         type: "string",
                         enum: [
-                            "CONTINUOUS",
+                            "CONTINUES",
                             "NEW_INSTANCE",
-                            "MULTIPLEXED",
+                            "NULL"
+                        ]
+                    },
+                    state: {
+                        type: "string",
+                        enum: [
+                            "PRESENT",
+                            "ABSENT",
                             "NULL"
                         ]
                     },
@@ -102,6 +94,7 @@ const C3PE_SCHEMA = {
                     "from",
                     "to",
                     "relation",
+                    "state",
                     "evidence"
                 ]
             }
@@ -145,8 +138,6 @@ const C3PE_SCHEMA = {
         "AReason",
         "B",
         "BReason",
-        "identityStatus",
-        "identityReason",
         "identityRelations",
         "causalEvidence",
         "boundaryStatus"
@@ -474,91 +465,37 @@ Macro-Phenomenon = C1 AND C2
 RULE 7 — ARTICLE III
 ==================================================
 
-Interpret Article III using all relevant available information.
+Article III:
+AI MUST NOT output a final Article III status.
 
-Available information includes:
+AI MUST only extract structured evidence describing subjective-address
+relations and their spacetime existence state.
 
-- the user's case description
-- the authoritative Target Vessel
-- relevant established factual knowledge about the identified
-  Target Vessel
+For each identity relation:
 
-Do NOT restrict Article III interpretation only to facts explicitly
-written in the case description.
+relation:
+- CONTINUES = the subjective address continues from the source to the target.
+- NEW_INSTANCE = a new subjective address is established at the target.
+- NULL = the relation cannot be determined.
 
-However, do NOT invent or assume unsupported identity events,
-subjective addresses, copies, transfers, or continuity.
+state:
+- PRESENT = the relevant subjective address is confirmed to exist at
+  the evaluation time.
+- ABSENT = the relevant subjective address is confirmed not to exist at
+  the evaluation time.
+- NULL = the existence state cannot be determined.
 
-Possible values:
+PRESENT and ABSENT describe spacetime existence state.
+They MUST NOT be interpreted as conscious/unconscious, active/inactive,
+or any equivalent mental state.
 
-CONTINUOUS
-NEW_INSTANCE
-MULTIPLEXED
-NULL
+MULTIPLEXED is NOT an AI output.
+C3PE MUST determine the final Article III status deterministically
+from the structured relations and existence states.
 
-MULTIPLEXED requires evidence that two or more distinct
-subjective addresses are simultaneously instantiated within
-the same Target Vessel.
+AI MUST NOT infer a final Article III status from the number of entities,
+relations, copies, or textual similarity alone.
 
-The mere existence of multiple Vessels does NOT establish
-MULTIPLEXED.
-
-Two or more independent Vessels with separate subjective
-addresses must not be classified as MULTIPLEXED merely because
-they exist simultaneously.
-
-When multiple Vessels are present, distinguish between:
-
-- the Article III status of the Target Vessel
-- identity relationships between different Vessels
-
-CONTINUOUS requires evidence that the same subjective address
-is logically maintained.
-The AI may infer an identity relationship from multiple
-explicitly supported facts when those facts establish
-continuity of the same subjective address.
-
-However, similarity of information, memory, personality,
-physical structure, or behavior is not sufficient by itself.
-
-If the evidence supports only similarity but not continuity
-of the subjective address, do not return CONTINUOUS.
-
-Do NOT infer CONTINUOUS merely from:
-
-- identical memories
-- identical personality
-- identical data
-- identical physical structure
-- behavioral similarity
-- a claim that something is "the same person"
-
-If the available information does not establish the identity
-relationship, return null.
-
-When multiple Vessels are present, also return the identity
-relationship between relevant Vessels in identityRelations.
-
-For each relevant relationship, specify:
-
-- from: the source Vessel
-- to: the related Vessel
-- relation: the identity relationship
-- evidence: the evidence supporting that relationship
-
-Do NOT use CONTINUOUS merely because two Vessels have
-identical memories, personality, data, physical structure,
-or other information.
-
-If one Vessel is copied into another distinct Vessel while
-the original continues to exist, the relationship between
-the original and the copy is NEW_INSTANCE unless the available
-information explicitly establishes preservation of the same
-subjective address.
-
-identityRelations describes relationships between Vessels.
-identityStatus describes the Article III status represented
-by those relationships.
 
 ==================================================
 RULE 8 — ARTICLE IV
@@ -655,13 +592,6 @@ Return JSON only.
   "AReason": "...",
   "B": 0 | 1 | null,
   "BReason": "...",
-  "identityStatus":
-    "CONTINUOUS" |
-    "NEW_INSTANCE" |
-    "MULTIPLEXED" |
-    "NULL" |
-    null,
-  "identityReason": "...",
   "identityRelations": [],
 "causalEvidence": [
     {
@@ -685,13 +615,13 @@ function stableResultSignature(result) {
         C1: result.C1,
         A: result.A,
         B: result.B,
-        identityStatus: result.identityStatus,
         identityRelations: (result.identityRelations || []).map(r => ({
             from: r.from,
             to: r.to,
-            relation: r.relation
+            relation: r.relation,
+            state: r.state
         })),
-    　  causalContradiction: result.causalContradiction,
+        causalContradiction: result.causalContradiction,
         boundaryStatus: result.boundaryStatus
     });
 }
@@ -915,30 +845,11 @@ function validateAIResult(result) {
         }
     }
 
-    const validIdentityStatuses = [
-        "CONTINUOUS",
-        "NEW_INSTANCE",
-        "MULTIPLEXED",
-        "NULL"
-    ];
-
-    if (
-        result.identityStatus !== null &&
-        !validIdentityStatuses.includes(
-            result.identityStatus
-        )
-    ) {
-        throw new Error(
-            "IDENTITY_STATUS_INVALID"
-        );
-    }
-
     for (
         const key of [
             "C1Reason",
             "AReason",
-            "BReason",
-            "identityReason"
+            "BReason"
         ]
     ) {
 
