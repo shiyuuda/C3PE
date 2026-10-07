@@ -96,7 +96,8 @@ const C3PE_SCHEMA = {
                     "relation",
                     "state",
                     "evidence"
-                ]
+                ],
+                 additionalProperties: false
             }
         },
 
@@ -554,9 +555,8 @@ The case description may establish relationships such as:
 Do not assume such relationships unless they are supported
 by the supplied case or established factual knowledge.
 
-If the relationship between entities cannot be sufficiently
-established, return NULL for the corresponding Article III
-judgment.
+If the relationship between entities cannot be sufficiently established,
+return NULL for the corresponding relation/state.
 
 ==================================================
 RULE 9 — TARGET VESSEL
@@ -620,6 +620,11 @@ function stableResultSignature(result) {
             to: r.to,
             relation: r.relation,
             state: r.state
+        })),
+        causalEvidence: (result.causalEvidence || []).map(r => ({
+            condition: r.condition,
+            requiresExistence: r.requiresExistence,
+            requiresNonExistence: r.requiresNonExistence
         })),
         causalContradiction: result.causalContradiction,
         boundaryStatus: result.boundaryStatus
