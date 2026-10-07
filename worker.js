@@ -763,7 +763,6 @@ Analyze the case according to C3PE v3.6.2.
         C1: result.C1,
         A: result.A,
         B: result.B,
-        identityStatus: result.identityStatus,
         identityRelations: result.identityRelations,
         causalEvidence: result.causalEvidence,
         boundaryStatus: result.boundaryStatus,
@@ -932,7 +931,56 @@ function validateAIResult(result) {
             "IDENTITY_RELATIONS_INVALID"
         );
     }
+    
+for (const relation of result.identityRelations) {
+    if (!relation || typeof relation !== "object") {
+        throw new Error(
+            "IDENTITY_RELATION_ITEM_INVALID"
+        );
+    }
 
+    if (
+        typeof relation.from !== "string" ||
+        relation.from.trim() === ""
+    ) {
+        throw new Error(
+            "IDENTITY_RELATION_FROM_INVALID"
+        );
+    }
+
+    if (
+        typeof relation.to !== "string" ||
+        relation.to.trim() === ""
+    ) {
+        throw new Error(
+            "IDENTITY_RELATION_TO_INVALID"
+        );
+    }
+
+    if (
+        !["CONTINUES", "NEW_INSTANCE", "NULL"]
+            .includes(relation.relation)
+    ) {
+        throw new Error(
+            "IDENTITY_RELATION_TYPE_INVALID"
+        );
+    }
+
+    if (
+        !["PRESENT", "ABSENT", "NULL"]
+            .includes(relation.state)
+    ) {
+        throw new Error(
+            "IDENTITY_RELATION_STATE_INVALID"
+        );
+    }
+
+    if (typeof relation.evidence !== "string") {
+        throw new Error(
+            "IDENTITY_RELATION_EVIDENCE_INVALID"
+        );
+    }
+}
     if (
         !Array.isArray(
             result.causalEvidence
@@ -1082,10 +1130,7 @@ const caseText =
                         BReason:
                             "Target Vessel is undefined.",
 
-                        identityStatus: null,
-
-                        identityReason:
-                            "Target Vessel is undefined.",
+                        identityRelations: [],
 
                         causalEvidence: [],
 
