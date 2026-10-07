@@ -245,10 +245,8 @@ function countSubjectiveAddresses(addresses, targetVesselId) {
 
 function evaluateSubjectiveIdentity(data) {
     const {
-        subjectiveAddresses = [],
+        identityRelations = [],
         targetVesselId,
-        identityStatus = null,
-        identityReason = "",
         macroPhenomenon = 0
     } = data;
 
@@ -597,13 +595,9 @@ function evaluateC3PE(caseData) {
 
     const identityResult =
         evaluateSubjectiveIdentity({
-            subjectiveAddresses:
-                caseData.subjectiveAddresses || [],
+            identityRelations:
+                caseData.identityRelations || [],
             targetVesselId,
-            identityStatus:
-                caseData.identityStatus || null,
-            identityReason:
-                caseData.identityReason || "",
             macroPhenomenon
         });
 
