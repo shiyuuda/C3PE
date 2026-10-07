@@ -743,16 +743,38 @@ Analyze the case according to C3PE v3.6.2.
     result.targetVessel = targetVessel;
     result.targetVesselId = targetVessel;
     result.boundaryStatus = "DEFINED";
+    result.causalContradiction = (() => {
+        const requirements = new Map();
 
-    result.causalContradiction =
-    result.causalEvidence?.some(
-        r =>
-            r.requiresExistence === true &&
-            r.requiresNonExistence === true
-    )
-        ? 1
-        : 0;
+        for (const r of result.causalEvidence ?? []) {
+            const condition = r.condition;
 
+            if (!requirements.has(condition)) {
+                requirements.set(condition, {
+                    requiresExistence: false,
+                    requiresNonExistence: false
+                });
+            }
+
+            const current = requirements.get(condition);
+
+            if (r.requiresExistence === true) {
+                current.requiresExistence = true;
+            }
+
+            if (r.requiresNonExistence === true) {
+                current.requiresNonExistence = true;
+            }
+        }
+
+        return [...requirements.values()].some(
+            r =>
+                r.requiresExistence === true &&
+                r.requiresNonExistence === true
+        )
+            ? 1
+            : 0;
+    })();
         const signature =
         stableResultSignature(result);
 
